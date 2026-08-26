@@ -27,6 +27,7 @@ services:
       DATABASE_URL: postgresql+psycopg://postgres:fintrack_pass@db:5432/fintrack_db
       APP_ENV: development
       API_PORT: 8000
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173
     ports:
       - "8000:8000"
     depends_on:
