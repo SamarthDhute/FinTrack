@@ -37,9 +37,9 @@ def health_check():
     }
 
 
-# Mount feature controllers
-app.include_router(category_router)
-app.include_router(payment_method_router)
-app.include_router(budget_router)
-app.include_router(expense_router)
-app.include_router(dashboard_router)
+# Mount feature controllers under /api/v1
+app.include_router(category_router, prefix="/api/v1")
+app.include_router(payment_method_router, prefix="/api/v1")
+app.include_router(budget_router, prefix="/api/v1")
+app.include_router(expense_router, prefix="/api/v1")
+app.include_router(dashboard_router, prefix="/api/v1")
