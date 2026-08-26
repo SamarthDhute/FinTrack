@@ -1,0 +1,45 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import settings
+from app.controllers.category_controller import router as category_router
+from app.controllers.payment_method_controller import router as payment_method_router
+from app.controllers.budget_controller import router as budget_router
+from app.controllers.expense_controller import router as expense_router
+from app.controllers.dashboard_controller import router as dashboard_router
+
+app = FastAPI(
+    title="FinTrack API",
+    description="Personal Expense Tracker REST API - Built with FastAPI & SQLAlchemy 2.x",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+# CORS configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows frontend in dev/docker
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/health", tags=["System"])
+def health_check():
+    """
+    Health check endpoint for container and uptime monitoring.
+    """
+    return {
+        "status": "healthy",
+        "environment": settings.APP_ENV,
+        "version": "1.0.0"
+    }
+
+
+# Mount feature controllers
+app.include_router(category_router)
+app.include_router(payment_method_router)
+app.include_router(budget_router)
+app.include_router(expense_router)
+app.include_router(dashboard_router)
