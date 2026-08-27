@@ -42,6 +42,7 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
+  request: (endpoint, options = {}) => request(endpoint, options),
   // System Health
   health: () => fetch(`${BASE_URL}/health`).then(r => r.json()),
 

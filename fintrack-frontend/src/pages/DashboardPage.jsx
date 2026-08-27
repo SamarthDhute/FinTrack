@@ -6,14 +6,23 @@ import {
   TrendingUp, 
   ArrowRight, 
   Receipt,
-  Plus
+  Plus,
+  RefreshCw
 } from 'lucide-react';
 import { api } from '../api/client';
 import { MetricCard } from '../components/MetricCard';
+import { SummaryCard } from '../components/SummaryCard';
+import { AlertBanner } from '../components/AlertBanner';
+import { Skeleton } from '../components/Skeleton';
+import { CountUpNumber } from '../components/CountUpNumber';
+import { TimeRangeSelector } from '../components/TimeRangeSelector';
+import { CategoryFilter } from '../components/CategoryFilter';
+import { RefreshButton } from '../components/RefreshButton';
 import { CategoryDonutChart, PaymentMethodBarChart, SpendingTrendChart } from '../components/Charts';
 import { formatCurrency, formatDate, getBudgetStatusInfo } from '../utils/formatters';
 
 export const DashboardPage = ({ onNavigateToExpenses, onOpenAddExpense }) => {
+  // UI state
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(null);
   const [categoryData, setCategoryData] = useState([]);
@@ -22,13 +31,33 @@ export const DashboardPage = ({ onNavigateToExpenses, onOpenAddExpense }) => {
   const [budgets, setBudgets] = useState([]);
   const [error, setError] = useState(null);
 
-  const fetchDashboardData = async () => {
+  // New filter state
+  const [timeRange, setTimeRange] = useState('month'); // 'week' | 'month' | 'custom'
+  const [customRange, setCustomRange] = useState(null); // { start: '', end: '' }
+  const [categoryFilter, setCategoryFilter] = useState(''); // category id or empty
+
+  const fetchDashboardData = async (options = {}) => {
     try {
       setLoading(true);
       setError(null);
 
+      // Build query parameters based on filters
+      const params = {};
+      if (timeRange && timeRange !== 'custom') {
+        params.range = timeRange; // 'week' or 'month'
+      } else if (customRange) {
+        params.start = customRange.start;
+        params.end = customRange.end;
+      }
+      if (categoryFilter) {
+        params.category_id = categoryFilter;
+      }
+
+      const query = new URLSearchParams(params).toString();
+      const endpoint = query ? `/dashboard/summary?${query}` : '/dashboard/summary';
+
       const [sumRes, catRes, payRes, trdRes, budRes] = await Promise.all([
-        api.dashboard.summary().catch(() => null),
+        api.request(endpoint).catch(() => null),
         api.dashboard.categoryChart().catch(() => []),
         api.dashboard.paymentMethodChart().catch(() => []),
         api.dashboard.trendChart().catch(() => []),
@@ -50,13 +79,21 @@ export const DashboardPage = ({ onNavigateToExpenses, onOpenAddExpense }) => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [timeRange, customRange, categoryFilter]);
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '1rem' }}>
-        <div className="spinner" />
-        <p style={{ color: 'var(--text-muted)' }}>Loading financial dashboard...</p>
+      <div className="dashboard-loading" style={{ display: 'grid', gap: '1rem', padding: '2rem' }}>
+        {/* Skeletons for summary cards */}
+        <div className="summary-grid">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} height="80px" />
+          ))}
+        </div>
+        {/* Skeletons for charts */}
+        <Skeleton height="300px" />
+        <Skeleton height="300px" />
+        <Skeleton height="300px" />
       </div>
     );
   }
@@ -76,8 +113,35 @@ export const DashboardPage = ({ onNavigateToExpenses, onOpenAddExpense }) => {
   const overallBudget = budgets.find((b) => b.category_id === null || b.category_id === undefined);
   const overallStatus = overallBudget ? getBudgetStatusInfo(overallBudget.status, overallBudget.percentage_spent) : null;
 
+  // Alert for budget limit
+  const budgetExceeded = budgets.some(b => b.percentage_spent && b.percentage_spent >= 100);
+  const nearLimitThreshold = 80; // can be configured later
+  const nearLimit = budgets.some(b => b.percentage_spent && b.percentage_spent >= nearLimitThreshold && b.percentage_spent < 100);
+
   return (
     <div>
+      {/* Alert Banner */}
+      {(budgetExceeded || nearLimit) && (
+        <AlertBanner
+          type={budgetExceeded ? 'error' : 'warning'}
+          message={budgetExceeded ? 'You have exceeded your budget!' : 'Approaching budget limit.'}
+        />
+      )}
+      {/* Filters */}
+      <div className="filters-bar flex items-center justify-between mb-4">
+        <TimeRangeSelector
+          value={timeRange}
+          onChange={setTimeRange}
+          onCustomChange={setCustomRange}
+        />
+        <CategoryFilter
+          categories={categoryData.map(c => ({ id: c.id, name: c.name }))}
+          value={categoryFilter}
+          onChange={setCategoryFilter}
+        />
+        <RefreshButton onClick={() => fetchDashboardData()} loading={loading} />
+      </div>
+
       {/* Page Header */}
       <div className="page-header">
         <div className="page-title-group">
@@ -92,40 +156,28 @@ export const DashboardPage = ({ onNavigateToExpenses, onOpenAddExpense }) => {
 
       {/* Metric Cards Grid */}
       <div className="stats-grid">
-        <MetricCard
-          title="Total Spending"
-          value={formatCurrency(summary?.total_spend || 0)}
-          icon={DollarSign}
-          subtext="All-time accumulated expenses"
-        />
+          <SummaryCard
+            title="Total Spend"
+            value={<CountUpNumber end={summary?.total_spend || 0} prefix='$' />}
+            icon={DollarSign}
+            subtext="All‑time accumulated expenses"
+          />
 
-        <MetricCard
-          title="Current Month Spend"
-          value={formatCurrency(summary?.current_month_spend || 0)}
-          icon={Calendar}
-          changePercent={summary?.mom_change_percentage}
-          subtext="vs previous month"
-        />
+          <SummaryCard
+            title="Current Month Spend"
+            value={<CountUpNumber end={summary?.current_month_spend || 0} prefix='$' />}
+            icon={Calendar}
+            changePercent={summary?.mom_change_percentage}
+            subtext="vs previous month"
+          />
 
-        {overallBudget ? (
-          <div className="card metric-card">
-            <div className="metric-header">
-              <span className="metric-title">Monthly Budget Goal</span>
-              <div className="metric-icon-box" style={{ background: overallStatus?.badgeBg, color: overallStatus?.barColor }}>
-                <Target size={20} />
-              </div>
-            </div>
-            <div className="metric-value">
-              {formatCurrency(overallBudget.spent_amount)}{' '}
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 400 }}>
-                / {formatCurrency(overallBudget.amount_limit)}
-              </span>
-            </div>
-            <div style={{ marginTop: '0.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.35rem' }}>
-                <span style={{ color: overallStatus?.badgeText, fontWeight: 600 }}>{overallStatus?.label}</span>
-                <span style={{ color: 'var(--text-muted)' }}>{overallBudget.percentage_spent?.toFixed(1)}% spent</span>
-              </div>
+          {overallBudget ? (
+            <SummaryCard
+              title="Remaining Budget"
+              value={<CountUpNumber end={overallBudget.amount_limit - overallBudget.spent_amount} prefix='$' />}
+              icon={Target}
+              subtext={`${overallBudget.percentage_spent?.toFixed(1)}% spent`}
+            >
               <div className="progress-track">
                 <div
                   className="progress-fill"
@@ -135,20 +187,19 @@ export const DashboardPage = ({ onNavigateToExpenses, onOpenAddExpense }) => {
                   }}
                 />
               </div>
-            </div>
-          </div>
-        ) : (
-          <MetricCard
-            title="Active Expenses"
-            value={summary?.recent_expenses?.length ? `${summary.recent_expenses.length} Logged` : '0 Logged'}
-            icon={Receipt}
-            subtext="Ready to analyze"
-          />
-        )}
+            </SummaryCard>
+          ) : (
+            <SummaryCard
+              title="Active Expenses"
+              value={summary?.recent_expenses?.length ? `${summary.recent_expenses.length} Logged` : '0 Logged'}
+              icon={Receipt}
+              subtext="Ready to analyze"
+            />
+          )}
       </div>
 
-      {/* Charts 2-Column Grid */}
-      <div className="charts-grid">
+      {/* Charts Grid (Responsive) */}
+      <div className="charts-grid grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div className="card chart-container">
           <div className="chart-header">
             <h2 className="chart-title">Spending by Category</h2>
@@ -166,8 +217,8 @@ export const DashboardPage = ({ onNavigateToExpenses, onOpenAddExpense }) => {
         </div>
       </div>
 
-      {/* Spending Trend & Recent Transactions Split Grid */}
-      <div className="dashboard-split-grid">
+      {/* Spending Trend & Recent Transactions */}
+      <div className="dashboard-split-grid grid gap-4 md:grid-cols-2">
         {/* Spending Trend Area */}
         <div className="card chart-container">
           <div className="chart-header">
