@@ -422,7 +422,7 @@ export const SpendingTrendChart = ({ data = [] }) => {
           d={pathD}
           fill="none"
           stroke="#6366f1"
-          strokeWidth="2.75"
+          strokeWidth="2.2"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -467,10 +467,10 @@ export const SpendingTrendChart = ({ data = [] }) => {
                 <circle
                   cx={pt.x}
                   cy={pt.y}
-                  r={isHovered ? 6 : 3.5}
-                  fill={isHovered ? '#ffffff' : '#0f172a'}
+                  r={isHovered ? 6 : 4}
+                  fill={'var(--bg-card)'}
                   stroke="#6366f1"
-                  strokeWidth={isHovered ? 3 : 2}
+                  strokeWidth={isHovered ? 3 : 1.5}
                   filter={isHovered ? 'url(#pointGlow)' : 'none'}
                   style={{
                     transition: 'r 0.15s ease, fill 0.15s ease, stroke-width 0.15s ease',
