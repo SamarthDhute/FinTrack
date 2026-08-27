@@ -21,7 +21,7 @@ import { RefreshButton } from '../components/RefreshButton';
 import { CategoryDonutChart, PaymentMethodBarChart, SpendingTrendChart } from '../components/Charts';
 import { formatCurrency, formatDate, getBudgetStatusInfo } from '../utils/formatters';
 
-export const DashboardPage = ({ onNavigateToExpenses, onOpenAddExpense }) => {
+export const DashboardPage = ({ categories = [], onNavigateToExpenses, onOpenAddExpense }) => {
   // UI state
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(null);
@@ -35,6 +35,11 @@ export const DashboardPage = ({ onNavigateToExpenses, onOpenAddExpense }) => {
   const [timeRange, setTimeRange] = useState('month'); // 'week' | 'month' | 'custom'
   const [customRange, setCustomRange] = useState(null); // { start: '', end: '' }
   const [categoryFilter, setCategoryFilter] = useState(''); // category id or empty
+
+  // Resolve available categories
+  const availableCategories = categories && categories.length > 0 
+    ? categories 
+    : categoryData.map((c) => ({ id: c.category_id ?? c.id, name: c.category_name ?? c.name }));
 
   const fetchDashboardData = async (options = {}) => {
     try {
@@ -127,18 +132,31 @@ export const DashboardPage = ({ onNavigateToExpenses, onOpenAddExpense }) => {
           message={budgetExceeded ? 'You have exceeded your budget!' : 'Approaching budget limit.'}
         />
       )}
-      {/* Filters */}
-      <div className="filters-bar flex items-center justify-between mb-4">
-        <TimeRangeSelector
-          value={timeRange}
-          onChange={setTimeRange}
-          onCustomChange={setCustomRange}
-        />
-        <CategoryFilter
-          categories={categoryData.map(c => ({ id: c.id, name: c.name }))}
-          value={categoryFilter}
-          onChange={setCategoryFilter}
-        />
+      {/* Filters Toolbar */}
+      <div
+        className="filters-bar card"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.85rem',
+          padding: '0.85rem 1.25rem',
+          marginBottom: '1.5rem',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <TimeRangeSelector
+            value={timeRange}
+            onChange={setTimeRange}
+            onCustomChange={setCustomRange}
+          />
+          <CategoryFilter
+            categories={availableCategories}
+            value={categoryFilter}
+            onChange={setCategoryFilter}
+          />
+        </div>
         <RefreshButton onClick={() => fetchDashboardData()} loading={loading} />
       </div>
 
@@ -158,14 +176,14 @@ export const DashboardPage = ({ onNavigateToExpenses, onOpenAddExpense }) => {
       <div className="stats-grid">
           <SummaryCard
             title="Total Spend"
-            value={<CountUpNumber end={summary?.total_spend || 0} prefix='$' />}
+            value={<CountUpNumber end={summary?.total_spend || 0} prefix='₹' />}
             icon={DollarSign}
             subtext="All‑time accumulated expenses"
           />
 
           <SummaryCard
             title="Current Month Spend"
-            value={<CountUpNumber end={summary?.current_month_spend || 0} prefix='$' />}
+            value={<CountUpNumber end={summary?.current_month_spend || 0} prefix='₹' />}
             icon={Calendar}
             changePercent={summary?.mom_change_percentage}
             subtext="vs previous month"
@@ -174,7 +192,7 @@ export const DashboardPage = ({ onNavigateToExpenses, onOpenAddExpense }) => {
           {overallBudget ? (
             <SummaryCard
               title="Remaining Budget"
-              value={<CountUpNumber end={overallBudget.amount_limit - overallBudget.spent_amount} prefix='$' />}
+              value={<CountUpNumber end={overallBudget.amount_limit - overallBudget.spent_amount} prefix='₹' />}
               icon={Target}
               subtext={`${overallBudget.percentage_spent?.toFixed(1)}% spent`}
             >

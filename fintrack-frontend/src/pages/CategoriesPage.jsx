@@ -5,9 +5,11 @@ import {
   Edit3, 
   Trash2, 
   CreditCard, 
-  Receipt,
-  Layers,
-  Lock
+  Receipt, 
+  Layers, 
+  Lock,
+  Search,
+  X
 } from 'lucide-react';
 import { api } from '../api/client';
 import { useToast } from '../components/Toast';
@@ -20,6 +22,7 @@ export const CategoriesPage = ({ onRefreshGlobalData }) => {
   const [categories, setCategories] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   // Modal States for Category
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -91,6 +94,14 @@ export const CategoriesPage = ({ onRefreshGlobalData }) => {
     }
   };
 
+  const filteredCategories = categories.filter((c) =>
+    (c.name || '').toLowerCase().includes(search.toLowerCase().trim())
+  );
+
+  const filteredPaymentMethods = paymentMethods.filter((pm) =>
+    (pm.name || '').toLowerCase().includes(search.toLowerCase().trim())
+  );
+
   return (
     <div>
       {/* Page Header */}
@@ -111,6 +122,54 @@ export const CategoriesPage = ({ onRefreshGlobalData }) => {
         </button>
       </div>
 
+      {/* Search Filter Toolbar */}
+      <div
+        className="filter-bar card"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          padding: '0.75rem 1.25rem',
+          marginBottom: '1.5rem',
+        }}
+      >
+        <div className="search-input-wrapper" style={{ flex: 1, maxWidth: 400 }}>
+          <Search size={16} className="search-icon-inside" style={{ color: 'var(--text-dim)' }} />
+          <input
+            type="text"
+            placeholder="Search categories or payment channels..."
+            className="form-input"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ paddingLeft: '2.25rem', paddingRight: search ? '2rem' : '0.75rem' }}
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              style={{
+                position: 'absolute',
+                right: '0.6rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-dim)',
+                cursor: 'pointer',
+                display: 'flex',
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        {search && (
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+            Found {filteredCategories.length} categories, {filteredPaymentMethods.length} payment channels
+          </span>
+        )}
+      </div>
+
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '40vh', gap: '1rem' }}>
           <div className="spinner" />
@@ -123,7 +182,7 @@ export const CategoriesPage = ({ onRefreshGlobalData }) => {
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <Tag size={20} color="var(--primary)" />
-                <h2 style={{ fontSize: '1.15rem' }}>Custom Categories ({categories.length})</h2>
+                <h2 style={{ fontSize: '1.15rem' }}>Custom Categories ({filteredCategories.length})</h2>
               </div>
               <button
                 className="btn btn-ghost btn-sm"
@@ -137,14 +196,16 @@ export const CategoriesPage = ({ onRefreshGlobalData }) => {
               </button>
             </div>
 
-            {categories.length === 0 ? (
+            {filteredCategories.length === 0 ? (
               <div className="empty-state" style={{ padding: '3rem 1rem' }}>
                 <Layers size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
-                <p style={{ color: 'var(--text-dim)', fontSize: '0.875rem' }}>No categories created yet.</p>
+                <p style={{ color: 'var(--text-dim)', fontSize: '0.875rem' }}>
+                  {search ? 'No categories matching your search.' : 'No categories created yet.'}
+                </p>
               </div>
             ) : (
               <div>
-                {categories.map((cat) => (
+                {filteredCategories.map((cat) => (
                   <div key={cat.id} className="list-item-row">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <span className="badge badge-indigo">🏷️</span>
@@ -192,35 +253,44 @@ export const CategoriesPage = ({ onRefreshGlobalData }) => {
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <CreditCard size={20} color="var(--secondary-accent)" />
-                <h2 style={{ fontSize: '1.15rem' }}>Payment Methods ({paymentMethods.length})</h2>
+                <h2 style={{ fontSize: '1.15rem' }}>Payment Methods ({filteredPaymentMethods.length})</h2>
               </div>
               <span className="badge badge-gray" style={{ fontSize: '0.7rem' }}>
                 <Lock size={10} style={{ marginRight: 2 }} /> System Predefined
               </span>
             </div>
 
-            <div>
-              {paymentMethods.map((pm) => (
-                <div key={pm.id} className="list-item-row">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <span className="badge badge-emerald">💳</span>
-                    <div>
-                      <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.925rem' }}>
-                        {pm.name}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Receipt size={12} />
-                        <span>{pm.expense_count || 0} expenses recorded</span>
+            {filteredPaymentMethods.length === 0 ? (
+              <div className="empty-state" style={{ padding: '3rem 1rem' }}>
+                <CreditCard size={32} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
+                <p style={{ color: 'var(--text-dim)', fontSize: '0.875rem' }}>
+                  {search ? 'No payment methods matching your search.' : 'No payment methods available.'}
+                </p>
+              </div>
+            ) : (
+              <div>
+                {filteredPaymentMethods.map((pm) => (
+                  <div key={pm.id} className="list-item-row">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span className="badge badge-emerald">💳</span>
+                      <div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '0.925rem' }}>
+                          {pm.name}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Receipt size={12} />
+                          <span>{pm.expense_count || 0} expenses recorded</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <span className="badge badge-gray" style={{ fontSize: '0.75rem' }}>
-                    Active
-                  </span>
-                </div>
-              ))}
-            </div>
+                    <span className="badge badge-gray" style={{ fontSize: '0.75rem' }}>
+                      Active
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

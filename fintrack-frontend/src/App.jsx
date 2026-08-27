@@ -75,6 +75,7 @@ const MainLayout = () => {
         {activeTab === 'dashboard' && (
           <DashboardPage
             key={refreshTrigger}
+            categories={categories}
             onNavigateToExpenses={() => setActiveTab('expenses')}
             onOpenAddExpense={() => setIsQuickExpenseModalOpen(true)}
           />
