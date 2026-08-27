@@ -68,6 +68,7 @@ class DashboardService:
             }
 
         return {
+            "total_spend": all_time_spend,
             "all_time_spend": all_time_spend,
             "current_month_spend": current_month_spend,
             "previous_month_spend": prev_month_spend,
