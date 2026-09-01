@@ -131,7 +131,7 @@ def send_password_reset_email(to_email: str, reset_token: str) -> None:
 
     if not settings.SMTP_HOST:
         print("\n" + "=" * 60)
-        print("📧  PASSWORD RESET LINK (dev console fallback)")
+        print(" [EMAIL]  PASSWORD RESET LINK (dev console fallback)")
         print(f"    To: {to_email}")
         print(f"    URL: {reset_url}")
         print("=" * 60 + "\n")

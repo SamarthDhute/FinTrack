@@ -45,6 +45,16 @@ class Settings(BaseSettings):
     # ── Frontend URL (for password-reset links in emails) ──────────────────
     FRONTEND_URL: str = "http://localhost:3000"
 
+    @field_validator("FRONTEND_URL", mode="before")
+    @classmethod
+    def pick_first_frontend_url(cls, v: Union[str, List[str]]) -> str:
+        """Pick the first URL when the env value is a comma-separated list."""
+        if isinstance(v, list):
+            return v[0].strip() if v else "http://localhost:3000"
+        if isinstance(v, str) and "," in v:
+            return v.split(",")[0].strip()
+        return v.strip() if isinstance(v, str) else v
+
     # ── SMTP (optional — console fallback when SMTP_HOST is empty) ─────────
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587

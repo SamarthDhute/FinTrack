@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.core.config import settings
 from app.controllers.auth_controller import limiter, router as auth_router
@@ -22,6 +23,15 @@ app = FastAPI(
 # SlowAPI rate limiting state and exception handler
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Session middleware — required by authlib's Starlette OAuth client
+# to persist the OAuth state/nonce between authorize and callback requests.
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.JWT_SECRET_KEY,
+    same_site="lax",
+    https_only=settings.APP_ENV == "production",
+)
 
 # CORS configuration
 app.add_middleware(
