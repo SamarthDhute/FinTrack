@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, 
   Receipt, 
@@ -9,13 +9,18 @@ import {
   X,
   WalletCards,
   LogOut,
+  Settings,
+  Lock,
+  ChevronDown,
   User as UserIcon
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
+  const profileRef = useRef(null);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -24,12 +29,24 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense }) => {
     { id: 'categories', label: 'Categories', icon: Tags },
   ];
 
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleTabClick = (tabId) => {
     onSelectTab(tabId);
     setMobileMenuOpen(false);
   };
 
   const displayName = user?.display_name || user?.email?.split('@')[0] || 'User';
+  const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
     <header className="header-navbar">
@@ -78,41 +95,49 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense }) => {
             <span className="hide-on-mobile">Add Expense</span>
           </button>
 
-          {/* User Info & Logout Button */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '0.5rem' }}>
-            <div 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.35rem 0.65rem',
-                borderRadius: '20px',
-                background: 'rgba(255, 255, 255, 0.06)',
-                fontSize: '0.8125rem',
-                color: '#cbd5e1'
-              }}
-              className="hide-on-mobile"
+          {/* Profile Dropdown (Desktop) */}
+          <div ref={profileRef} className="profile-dropdown-wrapper hide-on-mobile">
+            <button
+              className="profile-trigger"
+              onClick={() => setProfileMenuOpen(!profileMenuOpen)}
               title={user?.email}
             >
-              <UserIcon size={14} color="#818cf8" />
-              <span>{displayName}</span>
-            </div>
-
-            <button
-              onClick={logout}
-              className="btn btn-sm"
-              style={{
-                padding: '0.4rem',
-                background: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.2)',
-                color: '#fca5a5',
-                cursor: 'pointer',
-                borderRadius: '8px'
-              }}
-              title="Log out"
-            >
-              <LogOut size={16} />
+              <div className="profile-avatar">{initials}</div>
+              <span className="profile-name">{displayName}</span>
+              <ChevronDown
+                size={14}
+                style={{
+                  transition: 'transform 0.2s ease',
+                  transform: profileMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+                }}
+              />
             </button>
+
+            {profileMenuOpen && (
+              <div className="profile-dropdown">
+                <div className="profile-dropdown-header">
+                  <div className="profile-avatar profile-avatar-lg">{initials}</div>
+                  <div>
+                    <div style={{ color: '#f1f5f9', fontWeight: 600, fontSize: '0.875rem' }}>{displayName}</div>
+                    <div style={{ color: '#64748b', fontSize: '0.75rem' }}>{user?.email}</div>
+                  </div>
+                </div>
+                <div className="profile-dropdown-divider" />
+                <button className="profile-dropdown-item" onClick={() => { setProfileMenuOpen(false); }}>
+                  <Settings size={15} />
+                  <span>Settings</span>
+                </button>
+                <button className="profile-dropdown-item" onClick={() => { setProfileMenuOpen(false); }}>
+                  <Lock size={15} />
+                  <span>Update Password</span>
+                </button>
+                <div className="profile-dropdown-divider" />
+                <button className="profile-dropdown-item profile-dropdown-item-danger" onClick={logout}>
+                  <LogOut size={15} />
+                  <span>Log Out</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Mobile Hamburger Button */}
@@ -129,9 +154,16 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense }) => {
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
         <div className="mobile-drawer">
-          <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', color: '#94a3b8', fontSize: '0.875rem' }}>
-            Signed in as: <strong style={{ color: '#f8fafc' }}>{user?.email}</strong>
+          {/* User info header */}
+          <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div className="profile-avatar">{initials}</div>
+            <div>
+              <div style={{ color: '#f8fafc', fontSize: '0.875rem', fontWeight: 600 }}>{displayName}</div>
+              <div style={{ color: '#64748b', fontSize: '0.75rem' }}>{user?.email}</div>
+            </div>
           </div>
+
+          {/* Nav items */}
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -147,6 +179,34 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense }) => {
               </button>
             );
           })}
+
+          {/* Profile items in mobile */}
+          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', marginTop: '0.25rem', paddingTop: '0.25rem' }}>
+            <button
+              className="nav-link-item"
+              onClick={() => setMobileMenuOpen(false)}
+              style={{ width: '100%', justifyContent: 'flex-start', padding: '0.75rem 1rem' }}
+            >
+              <Settings size={18} />
+              <span>Settings</span>
+            </button>
+            <button
+              className="nav-link-item"
+              onClick={() => setMobileMenuOpen(false)}
+              style={{ width: '100%', justifyContent: 'flex-start', padding: '0.75rem 1rem' }}
+            >
+              <Lock size={18} />
+              <span>Update Password</span>
+            </button>
+            <button
+              className="nav-link-item"
+              onClick={logout}
+              style={{ width: '100%', justifyContent: 'flex-start', padding: '0.75rem 1rem', color: '#f87171' }}
+            >
+              <LogOut size={18} />
+              <span>Log Out</span>
+            </button>
+          </div>
         </div>
       )}
     </header>
