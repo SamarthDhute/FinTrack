@@ -13,8 +13,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision: str = "0005_add_user_id_to_all_tables"
-down_revision: Union[str, None] = "0004_add_users_and_refresh_tokens"
+revision: str = "0005_add_user_id_to_tables"
+down_revision: Union[str, None] = "0004_add_users_and_tokens"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

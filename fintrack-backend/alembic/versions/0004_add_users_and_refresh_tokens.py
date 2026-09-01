@@ -14,7 +14,7 @@ import sqlalchemy as sa
 from passlib.context import CryptContext
 
 # revision identifiers, used by Alembic.
-revision: str = "0004_add_users_and_refresh_tokens"
+revision: str = "0004_add_users_and_tokens"
 down_revision: Union[str, None] = "0003_seed_default_categories"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
