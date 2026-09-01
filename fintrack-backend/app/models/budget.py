@@ -7,12 +7,18 @@ from app.core.db import Base
 
 if TYPE_CHECKING:
     from app.models.category import Category
+    from app.models.user import User
 
 
 class Budget(Base):
     __tablename__ = "budgets"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
     category_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("categories.id", ondelete="CASCADE"),
         nullable=True,
@@ -23,4 +29,5 @@ class Budget(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships
+    user: Mapped["User"] = relationship(back_populates="budgets")
     category: Mapped[Optional["Category"]] = relationship(back_populates="budgets")

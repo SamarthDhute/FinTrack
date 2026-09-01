@@ -4,6 +4,8 @@ from typing import Optional, Dict, Any
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from app.core.db import get_db
+from app.core.dependencies import get_current_user
+from app.models.user import User
 from app.schemas.expense_schema import ExpenseCreate, ExpenseUpdate, ExpenseResponse
 from app.services.expense_service import ExpenseService
 
@@ -25,10 +27,12 @@ def get_expenses(
     ),
     skip: int = Query(0, ge=0, description="Offset for pagination"),
     limit: int = Query(50, ge=1, le=100, description="Limit per page"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
     return ExpenseService.get_expenses(
         db=db,
+        user_id=current_user.id,
         search=search,
         category_id=category_id,
         payment_method_id=payment_method_id,
@@ -43,20 +47,37 @@ def get_expenses(
 
 
 @router.get("/{expense_id}", response_model=ExpenseResponse)
-def get_expense(expense_id: int, db: Session = Depends(get_db)):
-    return ExpenseService.get_expense_by_id(db, expense_id)
+def get_expense(
+    expense_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return ExpenseService.get_expense_by_id(db, expense_id=expense_id, user_id=current_user.id)
 
 
 @router.post("", response_model=ExpenseResponse, status_code=status.HTTP_201_CREATED)
-def create_expense(payload: ExpenseCreate, db: Session = Depends(get_db)):
-    return ExpenseService.create_expense(db, payload)
+def create_expense(
+    payload: ExpenseCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return ExpenseService.create_expense(db, data=payload, user_id=current_user.id)
 
 
 @router.put("/{expense_id}", response_model=ExpenseResponse)
-def update_expense(expense_id: int, payload: ExpenseUpdate, db: Session = Depends(get_db)):
-    return ExpenseService.update_expense(db, expense_id, payload)
+def update_expense(
+    expense_id: int,
+    payload: ExpenseUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return ExpenseService.update_expense(db, expense_id=expense_id, data=payload, user_id=current_user.id)
 
 
 @router.delete("/{expense_id}")
-def delete_expense(expense_id: int, db: Session = Depends(get_db)):
-    return ExpenseService.delete_expense(db, expense_id)
+def delete_expense(
+    expense_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return ExpenseService.delete_expense(db, expense_id=expense_id, user_id=current_user.id)

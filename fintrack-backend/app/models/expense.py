@@ -8,12 +8,18 @@ from app.core.db import Base
 if TYPE_CHECKING:
     from app.models.category import Category
     from app.models.payment_method import PaymentMethod
+    from app.models.user import User
 
 
 class Expense(Base):
     __tablename__ = "expenses"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
     title: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     category_id: Mapped[int] = mapped_column(
         ForeignKey("categories.id", ondelete="RESTRICT"),
@@ -37,5 +43,6 @@ class Expense(Base):
     )
 
     # Relationships
+    user: Mapped["User"] = relationship(back_populates="expenses")
     category: Mapped["Category"] = relationship(back_populates="expenses")
     payment_method: Mapped["PaymentMethod"] = relationship(back_populates="expenses")

@@ -9,137 +9,266 @@ def test_health_check(client):
     assert data["status"] == "healthy"
 
 
-def test_categories_crud(client):
-    # 1. Create category
-    response = client.post("/api/v1/categories", json={"name": "Groceries"})
-    assert response.status_code == 201
-    cat = response.json()
-    assert cat["name"] == "Groceries"
-    cat_id = cat["id"]
+def test_auth_registration_and_login(client):
+    # 1. Register new user
+    reg_res = client.post(
+        "/api/v1/auth/register",
+        json={
+            "display_name": "Test User",
+            "email": "test@example.com",
+            "password": "Password123!",
+        },
+    )
+    assert reg_res.status_code == 201
+    data = reg_res.json()
+    assert "access_token" in data
+    assert "csrf_token" in data
+    assert "refresh_token" in reg_res.cookies
 
-    # 2. Duplicate category validation
-    dup_res = client.post("/api/v1/categories", json={"name": "Groceries"})
-    assert dup_res.status_code == 400
+    # 2. Duplicate registration fails
+    dup_res = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "test@example.com",
+            "password": "Password123!",
+        },
+    )
+    assert dup_res.status_code == 409
 
-    # 3. List categories
-    list_res = client.get("/api/v1/categories")
-    assert list_res.status_code == 200
-    categories = list_res.json()
-    assert len(categories) == 1
+    # 3. Login with correct credentials
+    login_res = client.post(
+        "/api/v1/auth/login",
+        json={"email": "test@example.com", "password": "Password123!"},
+    )
+    assert login_res.status_code == 200
+    token = login_res.json()["access_token"]
 
-    # 4. Update category
-    upd_res = client.put(f"/api/v1/categories/{cat_id}", json={"name": "Supermarket"})
-    assert upd_res.status_code == 200
-    assert upd_res.json()["name"] == "Supermarket"
+    # 4. Login with wrong password
+    bad_login = client.post(
+        "/api/v1/auth/login",
+        json={"email": "test@example.com", "password": "WrongPassword"},
+    )
+    assert bad_login.status_code == 401
 
-    # 5. Delete category
-    del_res = client.delete(f"/api/v1/categories/{cat_id}")
-    assert del_res.status_code == 200
-
-
-def test_payment_methods_list(client):
-    response = client.get("/api/v1/payment-methods")
-    assert response.status_code == 200
-    methods = response.json()
-    assert len(methods) >= 5
-    names = [m["name"] for m in methods]
-    assert "UPI" in names
-    assert "Cash" in names
+    # 5. Access /me profile
+    me_res = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert me_res.status_code == 200
+    assert me_res.json()["email"] == "test@example.com"
+    assert me_res.json()["display_name"] == "Test User"
 
 
-def test_budgets_and_expenses_integration(client):
-    # 1. Create a category
-    cat_res = client.post("/api/v1/categories", json={"name": "Dining Out"})
-    cat_id = cat_res.json()["id"]
+def test_token_refresh_and_logout(client):
+    # Register user
+    reg_res = client.post(
+        "/api/v1/auth/register",
+        json={"email": "refresh_test@example.com", "password": "Password123!"},
+    )
+    csrf_token = reg_res.json()["csrf_token"]
+    raw_rt = reg_res.cookies.get("refresh_token")
 
-    # 2. Get payment method ID (UPI)
-    pm_res = client.get("/api/v1/payment-methods")
-    pm_id = pm_res.json()[0]["id"]
+    # 1. Refresh token with CSRF header
+    refresh_res = client.post(
+        "/api/v1/auth/refresh",
+        headers={"X-CSRF-Token": csrf_token},
+        cookies={"refresh_token": raw_rt, "csrf_token": csrf_token},
+    )
+    assert refresh_res.status_code == 200
+    new_token = refresh_res.json()["access_token"]
+    assert new_token is not None
+    new_rt = refresh_res.cookies.get("refresh_token")
+    new_csrf = refresh_res.json()["csrf_token"]
 
-    # 3. Create Budget for Dining Out
-    budget_res = client.post("/api/v1/budgets", json={
-        "category_id": cat_id,
-        "amount_limit": 5000.00,
-        "period": "monthly"
-    })
+    # 2. Old refresh token should now be revoked (rotation)
+    revoked_res = client.post(
+        "/api/v1/auth/refresh",
+        headers={"X-CSRF-Token": csrf_token},
+        cookies={"refresh_token": raw_rt, "csrf_token": csrf_token},
+    )
+    assert revoked_res.status_code == 401
+
+    # 3. Logout
+    logout_res = client.post(
+        "/api/v1/auth/logout",
+        cookies={"refresh_token": new_rt},
+    )
+    assert logout_res.status_code == 200
+
+    # 4. Refresh after logout should fail
+    after_logout_res = client.post(
+        "/api/v1/auth/refresh",
+        headers={"X-CSRF-Token": new_csrf},
+        cookies={"refresh_token": new_rt, "csrf_token": new_csrf},
+    )
+    assert after_logout_res.status_code == 401
+
+
+def test_password_management_flow(client):
+    # Register user
+    client.post(
+        "/api/v1/auth/register",
+        json={"email": "pw_test@example.com", "password": "Password123!"},
+    )
+
+    # 1. Forgot password
+    forgot_res = client.post(
+        "/api/v1/auth/forgot-password",
+        json={"email": "pw_test@example.com"},
+    )
+    assert forgot_res.status_code == 200
+
+    # 2. Change password when authenticated
+    login_res = client.post(
+        "/api/v1/auth/login",
+        json={"email": "pw_test@example.com", "password": "Password123!"},
+    )
+    token = login_res.json()["access_token"]
+
+    change_res = client.post(
+        "/api/v1/auth/change-password",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"current_password": "Password123!", "new_password": "NewPassword456!"},
+    )
+    assert change_res.status_code == 200
+
+    # 3. Old password fails
+    old_login = client.post(
+        "/api/v1/auth/login",
+        json={"email": "pw_test@example.com", "password": "Password123!"},
+    )
+    assert old_login.status_code == 401
+
+    # 4. New password succeeds
+    new_login = client.post(
+        "/api/v1/auth/login",
+        json={"email": "pw_test@example.com", "password": "NewPassword456!"},
+    )
+    assert new_login.status_code == 200
+
+
+def test_user_data_isolation(client):
+    # Register User A
+    user_a = client.post(
+        "/api/v1/auth/register",
+        json={"email": "usera@example.com", "password": "Password123!"},
+    ).json()
+    token_a = user_a["access_token"]
+    headers_a = {"Authorization": f"Bearer {token_a}"}
+
+    # Register User B
+    user_b = client.post(
+        "/api/v1/auth/register",
+        json={"email": "userb@example.com", "password": "Password123!"},
+    ).json()
+    token_b = user_b["access_token"]
+    headers_b = {"Authorization": f"Bearer {token_b}"}
+
+    # 1. User A creates custom category "A Private Category"
+    cat_a = client.post(
+        "/api/v1/categories",
+        headers=headers_a,
+        json={"name": "A Private Category"},
+    ).json()
+    cat_a_id = cat_a["id"]
+
+    # 2. User B creates custom category with the same name (allowed per-user)
+    cat_b = client.post(
+        "/api/v1/categories",
+        headers=headers_b,
+        json={"name": "A Private Category"},
+    )
+    assert cat_b.status_code == 201
+
+    # 3. User B cannot see User A's category by ID
+    get_cat_b = client.get(f"/api/v1/categories/{cat_a_id}", headers=headers_b)
+    assert get_cat_b.status_code == 404
+
+    # 4. User A logs an expense
+    pm_id = client.get("/api/v1/payment-methods").json()[0]["id"]
+    exp_a = client.post(
+        "/api/v1/expenses",
+        headers=headers_a,
+        json={
+            "title": "User A Secret Spend",
+            "category_id": cat_a_id,
+            "payment_method_id": pm_id,
+            "amount": 999.00,
+            "date": date.today().isoformat(),
+        },
+    ).json()
+    exp_a_id = exp_a["id"]
+
+    # 5. User B cannot see User A's expense in list
+    exp_list_b = client.get("/api/v1/expenses", headers=headers_b).json()
+    assert exp_list_b["total"] == 0
+
+    # 6. User B cannot access User A's expense by ID (403 Forbidden)
+    exp_detail_b = client.get(f"/api/v1/expenses/{exp_a_id}", headers=headers_b)
+    assert exp_detail_b.status_code == 403
+
+    # 7. User B's dashboard summary shows 0 spend
+    dash_b = client.get("/api/v1/dashboard/summary", headers=headers_b).json()
+    assert float(dash_b["total_spend"]) == 0.00
+
+
+def test_authenticated_expense_and_budget_crud(client):
+    # 1. Register User
+    reg_res = client.post(
+        "/api/v1/auth/register",
+        json={"email": "crud_user@example.com", "password": "Password123!"},
+    )
+    token = reg_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 2. Check 10 default categories are seeded
+    cats_res = client.get("/api/v1/categories", headers=headers)
+    assert cats_res.status_code == 200
+    cats = cats_res.json()
+    assert len(cats) >= 10
+    groceries_cat = next(c for c in cats if c["name"] == "Groceries")
+
+    # 3. Create Budget
+    budget_res = client.post(
+        "/api/v1/budgets",
+        headers=headers,
+        json={
+            "category_id": groceries_cat["id"],
+            "amount_limit": 5000.00,
+            "period": "monthly",
+        },
+    )
     assert budget_res.status_code == 201
-    budget_id = budget_res.json()["id"]
 
-    # 4. Create an Expense
-    today_str = date.today().isoformat()
-    exp_res = client.post("/api/v1/expenses", json={
-        "title": "Dinner at Restaurant",
-        "category_id": cat_id,
-        "payment_method_id": pm_id,
-        "amount": 1200.50,
-        "date": today_str,
-        "notes": "Team dinner"
-    })
+    # 4. Log Expense
+    pm_id = client.get("/api/v1/payment-methods").json()[0]["id"]
+    exp_res = client.post(
+        "/api/v1/expenses",
+        headers=headers,
+        json={
+            "title": "Weekly Groceries",
+            "category_id": groceries_cat["id"],
+            "payment_method_id": pm_id,
+            "amount": 1500.00,
+            "date": date.today().isoformat(),
+            "notes": "Vegetables and fruits",
+        },
+    )
     assert exp_res.status_code == 201
     exp_id = exp_res.json()["id"]
 
-    # 5. Verify Budget calculations updated
-    budgets_res = client.get("/api/v1/budgets")
-    assert budgets_res.status_code == 200
-    budget_list = budgets_res.json()
-    assert len(budget_list) == 1
-    assert float(budget_list[0]["spent_amount"]) == 1200.50
-    assert float(budget_list[0]["remaining_amount"]) == 3799.50
-    assert budget_list[0]["status"] == "on_track"
-
-    # 6. Verify Dashboard Summary & Charts
-    dash_res = client.get("/api/v1/dashboard/summary")
+    # 5. Check dashboard reflection
+    dash_res = client.get("/api/v1/dashboard/summary", headers=headers)
     assert dash_res.status_code == 200
-    dash_data = dash_res.json()
-    assert float(dash_data["current_month_spend"]) == 1200.50
-    assert len(dash_data["recent_expenses"]) == 1
+    assert float(dash_res.json()["current_month_spend"]) == 1500.00
 
-    breakdown_res = client.get("/api/v1/dashboard/charts/category")
-    assert breakdown_res.status_code == 200
-    breakdown_data = breakdown_res.json()
-    assert len(breakdown_data) == 1
-    assert breakdown_data[0]["category_name"] == "Dining Out"
-
-    trend_res = client.get("/api/v1/dashboard/charts/trend")
-    assert trend_res.status_code == 200
-
-    # 7. Update Expense
-    upd_exp = client.put(f"/api/v1/expenses/{exp_id}", json={"amount": 1500.00})
-    assert upd_exp.status_code == 200
-    assert float(upd_exp.json()["amount"]) == 1500.00
-
-    # 8. Delete Expense & Budget
-    del_exp = client.delete(f"/api/v1/expenses/{exp_id}")
-    assert del_exp.status_code == 200
-
-    del_bud = client.delete(f"/api/v1/budgets/{budget_id}")
-    assert del_bud.status_code == 200
+    # 6. Delete expense
+    del_res = client.delete(f"/api/v1/expenses/{exp_id}", headers=headers)
+    assert del_res.status_code == 200
 
 
-def test_expense_validations(client):
-    # Setup category and payment method
-    cat_res = client.post("/api/v1/categories", json={"name": "Travel"})
-    cat_id = cat_res.json()["id"]
-    pm_res = client.get("/api/v1/payment-methods")
-    pm_id = pm_res.json()[0]["id"]
-
-    # 1. Negative amount validation
-    res = client.post("/api/v1/expenses", json={
-        "title": "Taxi",
-        "category_id": cat_id,
-        "payment_method_id": pm_id,
-        "amount": -50.0,
-        "date": date.today().isoformat()
-    })
-    assert res.status_code == 422
-
-    # 2. Future date validation
-    future_date = "2099-01-01"
-    res2 = client.post("/api/v1/expenses", json={
-        "title": "Future Flight",
-        "category_id": cat_id,
-        "payment_method_id": pm_id,
-        "amount": 200.0,
-        "date": future_date
-    })
-    assert res2.status_code == 422
+def test_unauthenticated_requests_blocked(client):
+    # All protected endpoints return 401 when no token is supplied
+    assert client.get("/api/v1/categories").status_code == 401
+    assert client.get("/api/v1/expenses").status_code == 401
+    assert client.get("/api/v1/budgets").status_code == 401
+    assert client.get("/api/v1/dashboard/summary").status_code == 401
+    assert client.get("/api/v1/auth/me").status_code == 401

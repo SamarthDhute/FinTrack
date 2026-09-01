@@ -1,165 +1,101 @@
 # FinTrack — Project Progress & Status Report
 
-**Last Updated:** August 26, 2026  
-**Status:** Backend Complete ✅ | Frontend Complete ✅ | Both Locally Runnable
+**Last Updated:** August 31, 2026  
+**Status:** Phase 1 (MVP) ✅ Complete | Phase 2 (Authentication) ✅ Complete | Both Fully Tested
 
 ---
 
 ## 📌 Executive Summary
 
-FinTrack is a single-user personal expense tracking web application built with:
-- **Backend:** FastAPI + SQLAlchemy 2.x + PostgreSQL + Alembic + Pydantic v2
-- **Frontend:** React 18 + Vite + Vanilla CSS Design System
+FinTrack is a secure personal expense tracking web application with JWT authentication and complete user data isolation:
+- **Backend:** FastAPI + SQLAlchemy 2.x + PostgreSQL + Alembic + Pydantic v2 + SlowAPI + Authlib + BCrypt
+- **Frontend:** React 18 + Vite + Vanilla CSS Design System + PWA + In-Memory Token Management
 
-Both follow strict architectural boundaries. Backend is Controller → Service → Repository → Model. Frontend is fully connected to the live REST API.
+Both follow strict architectural boundaries. Backend enforces **Controller → Service → Repository → Model**. Frontend is fully integrated with HttpOnly refresh cookies, CSRF protection, silent token refreshing, and responsive UI.
 
 ---
 
 ## ✅ Completed Tasks
 
-### 1. Environment & Language Server Configuration
-- [x] Configured `.vscode/settings.json` to target Python virtual environment (`fintrack-backend/.venv/Scripts/python.exe`).
-- [x] Resolved module resolution issues for `sqlalchemy.orm`, `fastapi`, and `pydantic_settings`.
-- [x] Updated `.gitignore` to ensure `.venv/` and `.env` files are never tracked or exposed.
+### Phase 1 (MVP) — Core Loop ✅
+- [x] Full CRUD on expenses, dynamic categories, and budgets.
+- [x] Predefined payment methods (Cash, Card, UPI, Net Banking, Wallet).
+- [x] Dashboard with KPI metric cards, SVG donut, bar, and area trend charts.
+- [x] Expense search, date/category/amount/payment-method multi-filter, sorting, and pagination.
+- [x] Budget limits and live health calculation (on-track, near-limit, over-budget).
+- [x] PWA offline caching and installation prompt.
 
-### 2. Database & Alembic Migrations
-- [x] Created and verified PostgreSQL connection configuration in `.env`.
-- [x] Executed Alembic migrations to create tables:
-  - `categories` (Unique name, timestamp, cascade relations)
-  - `payment_methods` (Predefined methods: Cash, Card, UPI, Net Banking, Wallet)
-  - `budgets` (Category-specific or overall monthly limits)
-  - `expenses` (Indexed by title, date, category, payment method)
-  - `alembic_version` (Version control tracking)
-- [x] Seeded default payment methods via Alembic migration `0002_seed_payment_methods`.
-- [x] Seeded 10 default starter categories via Alembic migration `0003_seed_default_categories` (FR-10): Food & Dining, Transport, Rent & Housing, Groceries, Healthcare, Entertainment, Shopping, Education, Utilities, Others.
-
-### 3. Backend Architecture & API Implementation
-- [x] Followed strict **Controller → Service → Repository → Model** layered architecture.
-- [x] All endpoints mounted under `/api/v1` prefix in `app/main.py`.
-- [x] CORS configured via `CORSMiddleware` with `allow_origins=["*"]` for dev.
-- [x] Fixed Pydantic v2 `date` field shadowing bug in `expense_schema.py`.
-
-### 4. Automated Testing Suite
-- [x] Created `tests/conftest.py` with in-memory SQLite isolation.
-- [x] Created `tests/test_api.py` covering:
-  - System health check (`GET /health`)
-  - Category CRUD and duplicate validation
-  - Payment method listings
-  - Budget creation, live spending computation, and threshold alerts
-  - Expense creation, validation, update, and deletion
-  - Dashboard summaries, category breakdown, and spending trend endpoints
-- [x] **Test Results:** 5 / 5 passed (100% pass rate).
-
-### 5. Frontend Development (React + Vite)
-- [x] Initialized `fintrack-frontend/` with React 18 + Vite 6 + `lucide-react` icons.
-- [x] Built full **Vanilla CSS Dark FinTech Design System** with:
-  - CSS variable design tokens (colors, radii, shadows, fonts)
-  - Glassmorphism cards, gradient buttons, animated modals
-  - Responsive hamburger drawer for mobile
-  - Custom scrollbar, micro-animations, toast notification system
-- [x] **API Client** (`src/api/client.js`) — centralized `fetch` wrapper for all backend endpoints.
-- [x] **Utility Formatters** (`src/utils/formatters.js`) — INR currency, date, percentage, budget status helpers.
-- [x] **Components built:**
-  - `Navbar.jsx` — Sticky header with responsive mobile drawer & Add Expense CTA
-  - `MetricCard.jsx` — Metric stat cards with trend pill indicators
-  - `Charts.jsx` — SVG Donut Chart (Category), Bar Chart (Payment Method), Area Trend Chart (Monthly)
-  - `ExpenseModal.jsx` — Full Add/Edit expense form with inline category creation
-  - `BudgetModal.jsx` — Overall or category budget goal form
-  - `CategoryModal.jsx` — Category add/rename form
-  - `DeleteModal.jsx` — Reusable delete confirmation dialog
-  - `Toast.jsx` — Toast notification system (success/error/info) with context provider
-- [x] **Pages built:**
-  - `DashboardPage.jsx` — Metric cards, 2-column chart grid, spending trend, recent transactions widget
-  - `ExpensesPage.jsx` — Full CRUD table with search, multi-filter toolbar, sort, and pagination
-  - `BudgetsPage.jsx` — Overall budget spotlight + category budget grid with 🟢🟡🔴 health bars
-  - `CategoriesPage.jsx` — Custom category manager + predefined payment method explorer
-- [x] **Production build verified:** `vite build` — ✅ 1593 modules, 5s build time, 0 errors.
-- [x] **Dev server running:** `http://localhost:3000`
-
-### 6. Git & Version Control
-- [x] Committed backend features: `feat(backend): implement controllers, services, and repositories for all core features`
-- [x] Committed test suite: `test(backend): add automated api test suite and configure /api/v1 route prefix`
-- [x] Pushed all commits to `origin/main`.
+### Phase 2 — Production-Ready Authentication ✅
+- [x] **Database & Migrations:**
+  - `0004_add_users_and_refresh_tokens.py`: Created `users` and `refresh_tokens` tables.
+  - `0005_add_user_id_to_all_tables.py`: Added `user_id` FKs to `expenses`, `categories`, `budgets` with per-user unique category constraint `(name, user_id)`.
+- [x] **Security Core:**
+  - Native BCrypt password and refresh token hashing.
+  - Short-lived HS256 JWT Access Tokens (15 min).
+  - Long-lived Refresh Tokens (30 days) stored as hashes in DB, rotated on every refresh, delivered via `HttpOnly; SameSite=Lax` cookies.
+  - Double-submit CSRF protection on refresh endpoint.
+  - Signed password-reset tokens (1h TTL via `itsdangerous`) with dev console fallback & SMTP support.
+  - SlowAPI rate limiting (5 req/min on `/auth/login`, 3 req/min on `/auth/forgot-password`).
+- [x] **Data Isolation & Ownership:**
+  - Injected `get_current_user` FastAPI dependency across all protected endpoints.
+  - Enforced `WHERE user_id = :uid` on all queries and 403 Forbidden checks on cross-user resource access.
+- [x] **Frontend Auth Integration:**
+  - In-memory Access Token storage in `AuthContext.jsx` (never stored in localStorage).
+  - Silent token refresh interval (every 12 mins) + automatic 401 interceptor & retry loop in `client.js`.
+  - Glassmorphic `AuthPage.jsx` (Sign In / Register tabs, Google OAuth button), `ForgotPasswordPage.jsx`, and `ResetPasswordPage.jsx`.
+  - Navbar user identity indicator and logout CTA.
 
 ---
 
 ## 📡 Active API Endpoints Reference
 
-| Module | Method | Endpoint | Description |
-|---|---|---|---|
-| **System** | `GET` | `/health` | Health & uptime check |
-| **Categories** | `GET` | `/api/v1/categories` | List all categories with expense counts |
-| | `POST` | `/api/v1/categories` | Create new category |
-| | `GET` | `/api/v1/categories/{id}` | Get single category details |
-| | `PUT` | `/api/v1/categories/{id}` | Rename/update category |
-| | `DELETE` | `/api/v1/categories/{id}` | Delete category |
-| **Payment Methods** | `GET` | `/api/v1/payment-methods` | List predefined payment methods |
-| **Budgets** | `GET` | `/api/v1/budgets` | List budgets with real-time spending status |
-| | `POST` | `/api/v1/budgets` | Set overall or category budget |
-| | `PUT` | `/api/v1/budgets/{id}` | Update budget limit |
-| | `DELETE` | `/api/v1/budgets/{id}` | Delete budget |
-| **Expenses** | `GET` | `/api/v1/expenses` | List/filter expenses (date range, category, payment method, amount, search, pagination) |
-| | `POST` | `/api/v1/expenses` | Add new expense |
-| | `GET` | `/api/v1/expenses/{id}` | Get expense details |
-| | `PUT` | `/api/v1/expenses/{id}` | Edit expense |
-| | `DELETE` | `/api/v1/expenses/{id}` | Delete expense |
-| **Dashboard** | `GET` | `/api/v1/dashboard/summary` | Total spend, current month spend, MoM change %, recent expenses |
-| | `GET` | `/api/v1/dashboard/charts/category` | Category-wise expense breakdown |
-| | `GET` | `/api/v1/dashboard/charts/payment-method` | Payment method expense breakdown |
-| | `GET` | `/api/v1/dashboard/charts/trend` | Spending trend chart data |
+| Module | Method | Endpoint | Auth Required | Description |
+|---|---|---|---|---|
+| **System** | `GET` | `/health` | No | Health & uptime check |
+| **Authentication** | `POST` | `/api/v1/auth/register` | No | Register new user + seed 10 default categories |
+| | `POST` | `/api/v1/auth/login` | No (Rate limit: 5/min) | Login with email & password |
+| | `POST` | `/api/v1/auth/refresh` | Cookie + CSRF | Silent refresh & rotate refresh token |
+| | `POST` | `/api/v1/auth/logout` | Cookie | Logout current session |
+| | `POST` | `/api/v1/auth/logout-all` | Bearer Token | Revoke all sessions across devices |
+| | `GET` | `/api/v1/auth/me` | Bearer Token | Get current user profile |
+| | `POST` | `/api/v1/auth/forgot-password` | No (Rate limit: 3/min) | Send password reset link |
+| | `POST` | `/api/v1/auth/reset-password` | No | Reset password with signed token |
+| | `POST` | `/api/v1/auth/change-password` | Bearer Token | Change password |
+| | `GET` | `/api/v1/auth/google/authorize` | No | Google OAuth redirect |
+| | `GET` | `/api/v1/auth/google/callback` | No | Google OAuth callback |
+| **Categories** | `GET` | `/api/v1/categories` | Bearer Token | List user's categories with expense counts |
+| | `POST` | `/api/v1/categories` | Bearer Token | Create new category for user |
+| | `GET` | `/api/v1/categories/{id}` | Bearer Token | Get single category (scoped to user) |
+| | `PUT` | `/api/v1/categories/{id}` | Bearer Token | Rename user's category |
+| | `DELETE` | `/api/v1/categories/{id}` | Bearer Token | Delete category |
+| **Payment Methods** | `GET` | `/api/v1/payment-methods` | No | List predefined payment methods |
+| **Budgets** | `GET` | `/api/v1/budgets` | Bearer Token | List user's budgets with live spending status |
+| | `POST` | `/api/v1/budgets` | Bearer Token | Set user's budget |
+| | `PUT` | `/api/v1/budgets/{id}` | Bearer Token | Update user's budget limit |
+| | `DELETE` | `/api/v1/budgets/{id}` | Bearer Token | Delete user's budget |
+| **Expenses** | `GET` | `/api/v1/expenses` | Bearer Token | List user's expenses with filters |
+| | `POST` | `/api/v1/expenses` | Bearer Token | Add new expense |
+| | `GET` | `/api/v1/expenses/{id}` | Bearer Token | Get expense details (403 if not owner) |
+| | `PUT` | `/api/v1/expenses/{id}` | Bearer Token | Edit expense (403 if not owner) |
+| | `DELETE` | `/api/v1/expenses/{id}` | Bearer Token | Delete expense (403 if not owner) |
+| **Dashboard** | `GET` | `/api/v1/dashboard/summary` | Bearer Token | User's total spend & recent expenses |
+| | `GET` | `/api/v1/dashboard/charts/category` | Bearer Token | User's category spending chart |
+| | `GET` | `/api/v1/dashboard/charts/payment-method` | Bearer Token | User's payment method chart |
+| | `GET` | `/api/v1/dashboard/charts/trend` | Bearer Token | User's 30-day spending trend |
 
 ---
 
-## 🗂️ Complete Frontend File Structure
+## 🧪 Test Suite Results
 
-```
-fintrack-frontend/
-├── index.html
-├── package.json               (React 18 + Vite 6 + lucide-react)
-├── vite.config.js
-├── .env                       (VITE_API_BASE_URL=http://localhost:8000)
-├── .env.example
-├── public/
-│   └── favicon.svg
-└── src/
-    ├── main.jsx               (Entry point — mounts App with StrictMode)
-    ├── App.jsx                (Root: ToastProvider + Navbar + page routing + global state)
-    ├── api/
-    │   └── client.js          (Centralized fetch client for all API endpoints)
-    ├── utils/
-    │   └── formatters.js      (INR currency, date, percentage, budget status formatters)
-    ├── components/
-    │   ├── Navbar.jsx         (Sticky header, responsive drawer, Add Expense CTA)
-    │   ├── MetricCard.jsx     (KPI stat cards with trend pills)
-    │   ├── Charts.jsx         (SVG Donut, Bar, Area charts — pure CSS/SVG, no external lib)
-    │   ├── ExpenseModal.jsx   (Add/Edit expense form with inline category creation)
-    │   ├── BudgetModal.jsx    (Overall or category budget form)
-    │   ├── CategoryModal.jsx  (Category create/rename form)
-    │   ├── DeleteModal.jsx    (Confirmation dialog)
-    │   └── Toast.jsx          (Context-based toast notification system)
-    ├── pages/
-    │   ├── DashboardPage.jsx  (Metric cards, 3 charts, recent transactions)
-    │   ├── ExpensesPage.jsx   (Table, search, multi-filter, sort, pagination, CRUD modals)
-    │   ├── BudgetsPage.jsx    (Overall spotlight, category grid with 🟢🟡🔴 health bars)
-    │   └── CategoriesPage.jsx (Category manager + predefined payment method view)
-    └── styles/
-        ├── index.css          (Design tokens, reset, typography, scrollbars)
-        ├── components.css     (Cards, buttons, modals, forms, tables, badges, toasts, spinners)
-        └── pages.css          (Page layouts, grids, filter bar, pagination, responsive breakpoints)
-```
-
----
-
-## 🎯 Next Steps (For Next Session)
-
-1. **Containerization (Milestone 3)**:
-   - Create `Dockerfile` for backend.
-   - Create `Dockerfile` for frontend (Nginx serving Vite build).
-   - Create `docker-compose.yml` orchestrating backend + frontend + PostgreSQL.
-2. **Optional Enhancements**:
-   - Add `httpx2` to backend test deps to resolve `StarletteDeprecationWarning`.
-   - Tighten CORS to `allow_origins=["http://localhost:3000"]` for production.
-
+- **Backend Pytest (`tests/test_api.py`):** **7 / 7 PASSED (100%)**
+  - Health check
+  - Registration, duplicate check, and login
+  - Refresh token rotation, CSRF validation, and single/all logout
+  - Password management (forgot, reset, change)
+  - Strict multi-user data isolation (User A vs User B)
+  - Authenticated CRUD integration (expense, budget, dashboard reflection)
+  - Unauthenticated 401 blocking
+- **Frontend Production Build (`npm run build`):** **Built in 7.04s, 0 errors, PWA service worker generated.**
 
 ---
 
@@ -170,7 +106,7 @@ fintrack-frontend/
 cd e:\FinTrack\fintrack-backend
 .venv\Scripts\uvicorn app.main:app --reload --port 8000
 ```
-- Swagger Docs: `http://localhost:8000/docs`
+- Swagger UI Docs: `http://localhost:8000/docs`
 
 ### Backend Tests:
 ```powershell

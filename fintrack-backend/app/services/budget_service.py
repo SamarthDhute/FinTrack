@@ -19,10 +19,11 @@ class BudgetService:
         return start_date, end_date
 
     @classmethod
-    def _enrich_budget_response(cls, db: Session, budget) -> BudgetResponse:
+    def _enrich_budget_response(cls, db: Session, budget, user_id: int) -> BudgetResponse:
         start_date, end_date = cls._get_current_month_date_range()
         spent = BudgetRepository.get_spent_amount(
             db=db,
+            user_id=user_id,
             start_date=start_date,
             end_date=end_date,
             category_id=budget.category_id
@@ -52,31 +53,36 @@ class BudgetService:
         )
 
     @classmethod
-    def get_all_budgets(cls, db: Session, period: str = "monthly") -> List[BudgetResponse]:
-        budgets = BudgetRepository.get_all(db, period=period)
-        return [cls._enrich_budget_response(db, b) for b in budgets]
+    def get_all_budgets(cls, db: Session, user_id: int, period: str = "monthly") -> List[BudgetResponse]:
+        budgets = BudgetRepository.get_all(db, user_id=user_id, period=period)
+        return [cls._enrich_budget_response(db, b, user_id=user_id) for b in budgets]
 
     @classmethod
-    def get_budget_by_id(cls, db: Session, budget_id: int) -> BudgetResponse:
+    def get_budget_by_id(cls, db: Session, budget_id: int, user_id: int) -> BudgetResponse:
         budget = BudgetRepository.get_by_id(db, budget_id)
         if not budget:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Budget with ID {budget_id} not found"
             )
-        return cls._enrich_budget_response(db, budget)
+        if budget.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to access this budget"
+            )
+        return cls._enrich_budget_response(db, budget, user_id=user_id)
 
     @classmethod
-    def create_budget(cls, db: Session, data: BudgetCreate) -> BudgetResponse:
+    def create_budget(cls, db: Session, data: BudgetCreate, user_id: int) -> BudgetResponse:
         if data.category_id is not None:
-            category = CategoryRepository.get_by_id(db, data.category_id)
+            category = CategoryRepository.get_by_id(db, data.category_id, user_id=user_id)
             if not category:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Category with ID {data.category_id} not found"
                 )
 
-        existing = BudgetRepository.get_by_category(db, data.category_id, period=data.period)
+        existing = BudgetRepository.get_by_category(db, user_id=user_id, category_id=data.category_id, period=data.period)
         if existing:
             target = "Overall budget" if data.category_id is None else f"Budget for category ID {data.category_id}"
             raise HTTPException(
@@ -86,19 +92,25 @@ class BudgetService:
 
         created = BudgetRepository.create(
             db=db,
+            user_id=user_id,
             category_id=data.category_id,
             amount_limit=data.amount_limit,
             period=data.period
         )
-        return cls._enrich_budget_response(db, created)
+        return cls._enrich_budget_response(db, created, user_id=user_id)
 
     @classmethod
-    def update_budget(cls, db: Session, budget_id: int, data: BudgetUpdate) -> BudgetResponse:
+    def update_budget(cls, db: Session, budget_id: int, data: BudgetUpdate, user_id: int) -> BudgetResponse:
         budget = BudgetRepository.get_by_id(db, budget_id)
         if not budget:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Budget with ID {budget_id} not found"
+            )
+        if budget.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to modify this budget"
             )
 
         updated = BudgetRepository.update(
@@ -107,15 +119,20 @@ class BudgetService:
             amount_limit=data.amount_limit,
             period=data.period
         )
-        return cls._enrich_budget_response(db, updated)
+        return cls._enrich_budget_response(db, updated, user_id=user_id)
 
     @staticmethod
-    def delete_budget(db: Session, budget_id: int) -> dict:
+    def delete_budget(db: Session, budget_id: int, user_id: int) -> dict:
         budget = BudgetRepository.get_by_id(db, budget_id)
         if not budget:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Budget with ID {budget_id} not found"
+            )
+        if budget.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to delete this budget"
             )
 
         BudgetRepository.delete(db, budget)

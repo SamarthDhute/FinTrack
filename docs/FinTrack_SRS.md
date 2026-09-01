@@ -1,23 +1,28 @@
 # Software Requirements Specification (SRS)
-## FinTrack — Personal Expense Tracker (V1 / MVP)
+## FinTrack — Personal Expense Tracker
 
-**Document Version:** 1.0
-**Based on:** FinTrack PRD (V2 — includes Payment Method Module)
+**Document Version:** 2.0
+**Last Updated:** August 31, 2026
+**Based on:** FinTrack PRD v2.0
 **Prepared for:** Development & QA Team
+**Status:** Phase 1 ✅ Complete | Phase 2 (Authentication) 🔨 In Progress
 
 ---
 
 ## 1. Introduction
 
 ### 1.1 Purpose
-This SRS defines the functional, technical, and non-functional requirements for **FinTrack V1**, a single-user personal expense tracking web application. It translates the Product Requirements Document (PRD) into a technical specification the backend and frontend teams can build, test, and deploy against.
+This SRS defines the functional, technical, and non-functional requirements for FinTrack — a personal expense tracking web application. It translates the Product Requirements Document (PRD) into a technical specification the backend and frontend teams can build, test, and deploy against.
+
+**Version 2.0** extends the original V1 specification with a complete **Phase 2 Authentication** section covering JWT-based auth, Google OAuth 2.0, refresh token rotation, user data isolation, CSRF protection, and rate limiting.
 
 ### 1.2 Scope
-FinTrack V1 allows one user to log expenses, organize them into self-created categories, assign a required predefined payment method, view spending through a dashboard (totals, charts, budget status), and search/filter/sort their expense history. No authentication, multi-user support, or external integrations are in scope for V1.
+- **Phase 1 (Complete):** Single-user expense tracking — CRUD, categories, budgets, dashboard, search/filter/sort.
+- **Phase 2 (In Progress):** Secure multi-account authentication with JWT access + refresh tokens, Google OAuth, user-scoped data isolation, password management flows.
 
 ### 1.3 Intended Audience
 - Backend developers (API, database, business logic)
-- Frontend developers (UI, forms, charts)
+- Frontend developers (UI, forms, auth flows)
 - QA/Testing team
 - Product Owner (for acceptance sign-off)
 
@@ -28,367 +33,719 @@ FinTrack V1 allows one user to log expenses, organize them into self-created cat
 | CRUD | Create, Read, Update, Delete |
 | ORM | Object-Relational Mapping |
 | API | Application Programming Interface |
-| P0/P1/P2 | Priority levels (P0 = must-have for V1) |
+| JWT | JSON Web Token |
+| AT | Access Token (short-lived, 15 min) |
+| RT | Refresh Token (long-lived, 30 days) |
+| CSRF | Cross-Site Request Forgery |
+| OAuth | Open Authorization (2.0) |
+| OIDC | OpenID Connect |
+| P0/P1/P2 | Priority levels (P0 = must-have for this phase) |
 
 ### 1.5 References
-- FinTrack PRD v2 (Product Requirements Document)
+- FinTrack PRD v2.0
+- RFC 7519 (JSON Web Token)
+- RFC 6749 (OAuth 2.0)
+- OWASP Authentication Cheat Sheet
 
 ---
 
 ## 2. Overall Description
 
 ### 2.1 Product Perspective
-FinTrack V1 is a **standalone, single-user web application** — a new build, not an extension of an existing system. It follows a classic client-server architecture: a REST API backend serving a browser-based frontend, backed by a relational database.
+FinTrack is a **client-server web application** following a REST API architecture. Phase 2 adds a stateless JWT authentication layer on top of the existing API, with server-side Refresh Token storage enabling session revocation.
 
 ### 2.2 Product Functions (Summary)
+
+**Phase 1 (Existing):**
 - Expense CRUD (add, view, edit, delete)
-- Dynamic category management (create, rename, delete/reassign)
+- Dynamic category management
 - Predefined, required payment method on every expense
 - Dashboard with totals, charts, and budget status
 - Search, filter, and sort on expenses
 - Budget goal setting (overall + per-category) with live tracking
 
+**Phase 2 (New):**
+- User registration (email + password)
+- User login / logout / logout-all
+- Google Sign-In (OAuth 2.0 / OIDC, backend-driven)
+- JWT access + refresh token lifecycle management
+- Forgot password / reset password / change password
+- User data isolation — all existing APIs scoped per authenticated user
+
 ### 2.3 User Classes
-- **Single End User** — no roles, no permission tiers in V1 (login is out of scope).
+- **Authenticated End User** — no roles, no admin, no RBAC in Phase 2. Every user has equal access to their own data only.
 
 ### 2.4 Operating Environment
 - **Backend:** Python 3.11+ runtime, REST API
 - **Frontend:** Responsive web app (mobile browser + desktop browser)
-- **Deployment:** Local or private deployment only (no public internet exposure in V1, per PRD Section 9)
-- **Database:** Relational database (see Section 4.2)
+- **Deployment:** Local or private deployment (Phase 2); HTTPS required in production
+- **Database:** PostgreSQL
 
 ### 2.5 Design & Implementation Constraints
-- No hardcoded/dummy data at any layer — all data must come from the real database (PRD FR-30 / Section 9.1)
+- No hardcoded/dummy data at any layer
 - Single fixed currency: ₹ (INR), 2 decimal places
-- No authentication layer in V1 — API is not designed for public exposure
-- Must be built so Phase 2 features (login, multi-device sync, custom payment methods) don't require a full rebuild
+- No RBAC / admin roles in Phase 2
+- All JWT secrets and OAuth credentials must live in environment variables only — never in source code
+- Refresh Tokens stored as BCrypt hashes in the database — raw tokens never persisted
+- Access Token: stored in-memory on the frontend (JavaScript variable) — never in `localStorage`
+- Refresh Token: delivered and stored in `HttpOnly; Secure; SameSite=Strict` cookie — never accessible to JavaScript
+- Must follow existing Controller → Service → Repository → Model architecture (no new layers)
 
 ### 2.6 Assumptions & Dependencies
-- Single-user, single-tenant database (no `user_id` partitioning required in V1, but schema should not actively block adding it later)
-- Payment Method list is fixed in V1 (Cash, Card, UPI, Net Banking, Wallet) — not user-editable
-- Budget goal defaults to monthly period
+- Categories become per-user in Phase 2 (not global). Each new user gets a seeded copy of the 10 default categories on registration.
+- Budget goals are per-user.
+- Existing pre-Phase-2 rows in DB are assigned to a single seed user via Alembic migration — no data lost.
+- Password reset email delivery uses an SMTP provider in production; a **console fallback** (prints token to server log) is acceptable for local development.
+- Google OAuth requires a valid `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` from Google Cloud Console.
 
 ---
 
-## 3. Technology Stack (V1)
+## 3. Technology Stack
 
-This section specifies the mandated backend technology stack for FinTrack V1. All backend implementation must conform to this stack.
+### 3.1 Backend Stack (Full — Phase 1 + Phase 2)
 
 | Layer | Technology | Purpose / Notes |
-|-------|-----------|------------------|
-| **Web Framework** | **FastAPI** | Core API framework — handles routing, request/response validation via Pydantic, dependency injection |
-| **ORM** | **SQLAlchemy 2.x** | Data access layer — models for Expense, Category, PaymentMethod, Budget; uses the modern 2.0-style declarative + `Session`/`AsyncSession` API (not legacy 1.x query style) |
-| **Migrations** | **Alembic** | Schema version control — every schema change (new table, new column, new constraint) ships as an Alembic migration, never a manual DB edit |
-| **ASGI Server** | **Uvicorn** | Runs the FastAPI app; used for both local development (`--reload`) and the private V1 deployment |
-| **API Documentation** | **OpenAPI + Swagger UI** | Auto-generated from FastAPI route/schema definitions; Swagger UI (`/docs`) and ReDoc (`/redoc`) exposed for the dev/QA team to explore and test endpoints manually |
-| **Request/Response Validation** | **Pydantic v2** (ships with FastAPI) | Schema validation for all incoming payloads (e.g. positive amount, no future date) and outgoing responses |
-| **Database** | **PostgreSQL** | Confirmed for V1 (dev and deployment). Driver: `psycopg` (or `asyncpg` if using SQLAlchemy's async engine) |
+|-------|-----------|-----------------|
+| **Web Framework** | **FastAPI** | Core API framework — routing, Pydantic validation, dependency injection |
+| **ORM** | **SQLAlchemy 2.x** (synchronous `Session`) | Data access — `Mapped[]` typed columns, relationships |
+| **Migrations** | **Alembic** | All schema changes tracked — no manual `ALTER TABLE` ever |
+| **ASGI Server** | **Uvicorn** | `--reload` for dev; production mode for deployment |
+| **API Docs** | **OpenAPI + Swagger UI** | `/docs` for dev/QA manual testing |
+| **Validation** | **Pydantic v2** | Request/response contracts, field-level validators |
+| **Database** | **PostgreSQL** | Driver: `psycopg` (sync) |
+| **[Phase 2] JWT** | **`python-jose[cryptography]`** | HS256 JWT signing/validation |
+| **[Phase 2] Password Hashing** | **`passlib[bcrypt]`** | BCrypt — plaintext passwords never stored |
+| **[Phase 2] OAuth Client** | **`authlib`** | Google OAuth 2.0 / OIDC client |
+| **[Phase 2] Rate Limiting** | **`slowapi`** | Limits-based middleware; applied to login + forgot-password |
+| **[Phase 2] Reset Tokens** | **`itsdangerous`** | HMAC-signed, time-limited password-reset tokens (1h TTL) |
+| **[Phase 2] Form Parsing** | **`python-multipart`** | Required for OAuth form submissions |
+| **HTTP Client** | **`httpx`** | Used by authlib for token exchange; already in requirements |
+| **Testing** | **`pytest` + FastAPI `TestClient`** | In-memory SQLite isolation per test session |
 
-### 3.1 Why This Stack Fits V1
-- **FastAPI + Pydantic** gives request validation "for free" — directly enforces PRD rules like *"Amount must be a positive number"* and *"Date cannot be in the future"* (FR validation rules) at the API boundary, before data ever reaches the database.
-- **SQLAlchemy 2.x** (not 1.x) is specified because its `Session`/`AsyncSession` + typed `Mapped[]` column style is the current long-term-supported pattern — avoids technical debt from day one, matching the PRD's "build a scalable foundation" goal (Section 4).
-- **Alembic** directly satisfies the PRD's non-functional requirement that "Architecture should support later phases without major rework" — every V1 table (categories, payment methods, budgets) will need to evolve in Phase 2 (e.g. adding a `user_id` foreign key), and Alembic makes that a tracked, reversible migration instead of a manual ALTER TABLE.
-- **Swagger UI** gives the QA team and Product Owner a way to manually exercise every endpoint without waiting on the frontend — supports the PRD's "Testability: every feature/module must be independently testable" requirement (Section 9).
+> **Note on sync vs async:** The existing codebase uses synchronous `Session` only (no `async`/`await`). Phase 2 follows the same pattern — no async is introduced.
 
-### 3.2 Project Structure (Recommended)
+### 3.2 Frontend Stack (Full — Phase 1 + Phase 2)
+
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | React 18 + Vite 6 |
+| **Styling** | Vanilla CSS (3 files: `index.css`, `components.css`, `pages.css`) |
+| **Icons** | `lucide-react` v0.468 |
+| **HTTP** | Native `fetch` via centralized `src/api/client.js` |
+| **Charts** | Pure SVG (no external chart library) |
+| **Auth State** | React Context (`AuthContext`) — in-memory access token |
+| **Navigation** | Tab-based (`activeTab` state) — no React Router |
+| **[Phase 2] Token Storage** | Access Token: in-memory JS variable; Refresh Token: HttpOnly cookie (managed by browser) |
+
+### 3.3 Project Structure (Phase 2 Extended)
+
 ```
 fintrack-backend/
 ├── app/
-│   ├── main.py                        # FastAPI app instance, mounts controllers
-│   ├── controllers/                    # Route/endpoint layer — receives HTTP request, calls service, returns response
-│   │   ├── expense_controller.py
-│   │   ├── category_controller.py
+│   ├── main.py                        # FastAPI app, CORS, SlowAPI, router mounts
+│   ├── controllers/
+│   │   ├── auth_controller.py          # [NEW] All /auth/* endpoints
+│   │   ├── expense_controller.py       # [MODIFY] + current_user dependency
+│   │   ├── category_controller.py      # [MODIFY] + current_user dependency
 │   │   ├── payment_method_controller.py
-│   │   ├── budget_controller.py
-│   │   └── dashboard_controller.py
-│   ├── services/                        # Business logic layer — validation rules, orchestration, no direct DB access
-│   │   ├── expense_service.py
-│   │   ├── category_service.py
+│   │   ├── budget_controller.py        # [MODIFY] + current_user dependency
+│   │   └── dashboard_controller.py     # [MODIFY] + current_user dependency
+│   ├── services/
+│   │   ├── auth_service.py             # [NEW] All auth business logic
+│   │   ├── expense_service.py          # [MODIFY] + user_id scoping + ownership checks
+│   │   ├── category_service.py         # [MODIFY] + user_id scoping
 │   │   ├── payment_method_service.py
-│   │   ├── budget_service.py
-│   │   └── dashboard_service.py
-│   ├── repositories/                     # Data access layer — all SQLAlchemy queries live here, nowhere else
-│   │   ├── expense_repository.py
-│   │   ├── category_repository.py
+│   │   ├── budget_service.py           # [MODIFY] + user_id scoping
+│   │   └── dashboard_service.py        # [MODIFY] + user_id scoping
+│   ├── repositories/
+│   │   ├── user_repository.py          # [NEW] User CRUD + default category seeding
+│   │   ├── refresh_token_repository.py # [NEW] RT CRUD + revocation
+│   │   ├── expense_repository.py       # [MODIFY] + user_id filter on all queries
+│   │   ├── category_repository.py      # [MODIFY] + user_id filter on all queries
 │   │   ├── payment_method_repository.py
-│   │   └── budget_repository.py
-│   ├── models/                             # SQLAlchemy 2.x ORM models
-│   │   ├── expense.py
-│   │   ├── category.py
+│   │   └── budget_repository.py        # [MODIFY] + user_id filter on all queries
+│   ├── models/
+│   │   ├── user.py                     # [NEW] User ORM model
+│   │   ├── refresh_token.py            # [NEW] RefreshToken ORM model
+│   │   ├── expense.py                  # [MODIFY] + user_id FK
+│   │   ├── category.py                 # [MODIFY] + user_id FK
 │   │   ├── payment_method.py
-│   │   └── budget.py
-│   ├── schemas/                              # Pydantic request/response schemas
+│   │   └── budget.py                   # [MODIFY] + user_id FK
+│   ├── schemas/
+│   │   ├── auth_schema.py              # [NEW] Register, Login, Token, User, ForgotPw, ResetPw, ChangePw
 │   │   ├── expense_schema.py
 │   │   ├── category_schema.py
 │   │   ├── payment_method_schema.py
 │   │   └── budget_schema.py
-│   ├── core/                                   # Config, settings (env-driven), DB session setup
-│   │   ├── config.py
-│   │   └── db.py
-│   └── __init__.py
+│   └── core/
+│       ├── config.py                   # [MODIFY] + JWT_SECRET_KEY, GOOGLE_*, SMTP_*, FRONTEND_URL
+│       ├── db.py
+│       ├── security.py                 # [NEW] hash_pw, verify_pw, create_AT, create_RT, decode_AT, reset tokens
+│       └── dependencies.py             # [NEW] get_current_user FastAPI dependency
 ├── alembic/
-│   ├── versions/                                # Migration scripts (incl. payment-method seed migration)
-│   └── env.py
-├── alembic.ini
-├── requirements.txt
-├── Dockerfile                                    # Backend-only image
-├── .env                                            # Backend environment variables (gitignored)
-└── .env.example                                     # Backend env template (committed)
+│   └── versions/
+│       ├── 0001_initial_schema.py      ✅ existing
+│       ├── 0002_seed_payment_methods.py ✅ existing
+│       ├── 0003_seed_default_categories.py ✅ existing
+│       ├── 0004_add_users_and_refresh_tokens.py  [NEW] Creates users + refresh_tokens tables + seed user
+│       └── 0005_add_user_id_to_all_tables.py     [NEW] Adds user_id FK to expenses, budgets, categories
+├── requirements.txt                    # [MODIFY] + 7 new deps
+├── .env                                # gitignored
+└── .env.example                        # [MODIFY] + JWT, Google, SMTP vars
 
 fintrack-frontend/
-├── src/
-│   └── ...                                           # Frontend app source (framework per frontend team's choice)
-├── Dockerfile                                          # Frontend-only image
-├── .env                                                  # Frontend environment variables (gitignored)
-└── .env.example                                            # Frontend env template (committed)
-
-docker-compose.yml                                          # Orchestrates backend + frontend + Postgres as separate services
+└── src/
+    ├── App.jsx                         # [MODIFY] + AuthProvider wrap + conditional auth render
+    ├── contexts/
+    │   └── AuthContext.jsx             # [NEW] Auth state, token refresh loop, login/logout/register
+    ├── api/client.js                   # [MODIFY] + auth namespace + Bearer injection + 401 interceptor
+    ├── pages/
+    │   ├── AuthPage.jsx                # [NEW] Login + Register + Google Sign-In tabs
+    │   ├── ForgotPasswordPage.jsx      # [NEW] Email input for password reset
+    │   ├── ResetPasswordPage.jsx       # [NEW] New password form (reads ?token= from URL)
+    │   ├── DashboardPage.jsx
+    │   ├── ExpensesPage.jsx
+    │   ├── BudgetsPage.jsx
+    │   └── CategoriesPage.jsx
+    ├── components/
+    │   └── Navbar.jsx                  # [MODIFY] + user avatar + logout + change password option
+    └── styles/
+        ├── auth.css                    # [NEW] Auth page styles (glassmorphism card, Google button)
+        ├── index.css
+        ├── components.css
+        └── pages.css
 ```
 
-### 3.3 Layered Architecture — Responsibility Rules
+### 3.4 Layered Architecture — Responsibility Rules
 
-The backend strictly follows a **Controller → Service → Repository → Model** layering. Each layer has one job, and layers below never skip upward:
+The backend strictly follows **Controller → Service → Repository → Model** — unchanged for Phase 2. Auth is no exception:
 
 | Layer | Responsibility | Must NOT do |
-|-------|-----------------|--------------|
-| **Controller** | Receives the HTTP request (FastAPI route), validates request shape via Pydantic schema, calls the matching Service, returns the response | Must not contain business logic or direct DB/SQLAlchemy queries |
-| **Service** | Business logic and validation rules (e.g. "amount must be positive", "category must exist before assigning", "payment method is required") | Must not build SQL/ORM queries directly — always goes through a Repository |
-| **Repository** | All SQLAlchemy 2.x queries — `select()`, `insert()`, `update()`, `delete()` against the DB session | Must not contain business/validation logic |
-| **Model** | SQLAlchemy 2.x ORM table definitions (`Mapped[]` columns, relationships, constraints) | Must not contain query logic |
-| **Schema** | Pydantic request/response contracts — field types, required/optional, validators (e.g. positive amount, date not in future) | Must not touch the database |
-
-This mirrors the file layout requested for `expense` (`expense_controller.py` → `expense_service.py` → `expense_repository.py` → `expense.py` model → `expense_schema.py`) and is repeated identically for `category`, `payment_method`, `budget`, and `dashboard`.
-
-### 3.4 Containerization — Docker & Environment Files
-
-Frontend and backend are **fully separate services** — separate Dockerfiles, separate `.env` files, orchestrated together via `docker-compose.yml`. Neither image bundles the other.
-
-**Backend `Dockerfile` (indicative):**
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-**Backend `.env.example`:**
-```
-DATABASE_URL=postgresql+psycopg://fintrack_user:fintrack_pass@db:5432/fintrack_db
-APP_ENV=development
-API_PORT=8000
-```
-
-**Frontend `.env.example`:**
-```
-VITE_API_BASE_URL=http://localhost:8000
-```
-*(Variable prefix depends on the frontend framework/build tool chosen — placeholder shown assumes a Vite-based setup.)*
-
-**`docker-compose.yml` (indicative — three separate services):**
-```yaml
-services:
-  db:
-    image: postgres:16
-    env_file: ./backend.env
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-  backend:
-    build: ./fintrack-backend
-    env_file: ./fintrack-backend/.env
-    depends_on:
-      - db
-    ports:
-      - "8000:8000"
-
-  frontend:
-    build: ./fintrack-frontend
-    env_file: ./fintrack-frontend/.env
-    depends_on:
-      - backend
-    ports:
-      - "3000:3000"
-
-volumes:
-  pgdata:
-```
-
-**Rules:**
-- `.env` files are **never committed** — only `.env.example` templates are, per repo.
-- Backend never reads a frontend env var and vice versa — each service only sees its own `.env` via `env_file` in Compose.
-- `DATABASE_URL` is read via backend `core/config.py` (e.g. using `pydantic-settings`), never hardcoded in `db.py`.
-- Alembic (`alembic/env.py`) reads the same `DATABASE_URL` from the backend `.env` — one source of truth for the DB connection string, no duplicated credentials.
+|-------|-----------------|--------------| 
+| **Controller** | HTTP only — parse request, call Service, return response | No business logic, no DB queries |
+| **Service** | All business rules (e.g. "email must not already exist", "old password must match before changing", ownership enforcement) | No direct DB/ORM queries |
+| **Repository** | All SQLAlchemy queries | No business/validation logic |
+| **Model** | SQLAlchemy table definitions | No query logic |
+| **Schema** | Pydantic request/response contracts | No DB access |
+| **`core/security.py`** | Pure crypto utilities (hash, verify, sign, decode) | No DB access, no HTTP concern |
+| **`core/dependencies.py`** | FastAPI `Depends()` functions (extract + validate current user from JWT) | No business logic beyond token validation |
 
 ---
 
 ## 4. System Architecture
 
-### 4.1 High-Level Architecture
+### 4.1 High-Level Architecture (Phase 2)
+
 ```
-[ Browser (Frontend — separate Docker container) ]
-              │  HTTP (Compose network / local private deployment)
-              ▼
-[ Uvicorn (ASGI Server) — Backend container ]
-              │
-              ▼
-[ FastAPI Application ]
-   ├── Controllers   (HTTP layer — request in, response out)
-   ├── Services       (business logic & validation)
-   ├── Repositories     (all SQLAlchemy 2.x queries)
-   └── Pydantic Schemas   (request/response contracts)
-              │
-              ▼
-[ Models (SQLAlchemy 2.x ORM) ]
-              │
-              ▼
-[ PostgreSQL — separate container ]
-
-  Schema evolution managed by → [ Alembic Migrations ]
-  API contract exposed via   → [ OpenAPI Schema → Swagger UI @ /docs ]
+[ Browser ]
+    │
+    │  HTTP (with Authorization: Bearer <AT> header on protected requests)
+    │  Cookie: refresh_token=<RT>; HttpOnly; Secure; SameSite=Strict
+    │  Header: X-CSRF-Token: <csrf_token>  (on /auth/refresh only)
+    ▼
+[ Uvicorn — FastAPI Application ]
+    │
+    ├── SlowAPI Middleware (rate limiting on /auth/login, /auth/forgot-password)
+    ├── CORSMiddleware (restricted origins in prod)
+    │
+    ├── /auth/*  (auth_controller → auth_service → user_repo / rt_repo / security)
+    │
+    └── /api/v1/* (all existing controllers + Depends(get_current_user))
+         │
+         ├── Controllers  → validate JWT via get_current_user dependency
+         ├── Services      → enforce ownership (expense.user_id == current_user.id)
+         └── Repositories  → all queries WHERE user_id = :uid
+                │
+                ▼
+         [ PostgreSQL ]
+              ├── users
+              ├── refresh_tokens
+              ├── expenses    (+ user_id FK)
+              ├── categories  (+ user_id FK)
+              ├── budgets     (+ user_id FK)
+              └── payment_methods (global — no user_id)
 ```
 
-### 4.2 Data Model (Core Entities)
+### 4.2 Token Flow
 
-**Expense**
-| Field | Type | Constraint |
-|-------|------|-----------|
-| id | Integer (PK) | Auto-increment |
-| title | String(50) | Required, max 50 chars |
-| category_id | Integer (FK → Category) | Required |
-| payment_method_id | Integer (FK → PaymentMethod) | **Required** (per updated PRD) |
-| amount | Numeric(10,2) | Required, must be > 0 |
-| date | Date | Required, must be ≤ today |
-| notes | Text | Optional |
-| created_at | DateTime | Auto-set |
-| updated_at | DateTime | Auto-updated |
+```
+REGISTRATION / LOGIN
+─────────────────────
+Client → POST /auth/register (or /auth/login)
+Backend:
+  1. Verify credentials / create user
+  2. Generate AT (JWT, 15 min, HS256)
+  3. Generate RT (random 32 bytes → bcrypt hash → store in DB)
+  4. Set RT as HttpOnly cookie
+  5. Set CSRF token as regular (non-HttpOnly) cookie
+  6. Return AT + expires_in + csrf_token in JSON body
 
-**Category**
-| Field | Type | Constraint |
-|-------|------|-----------|
-| id | Integer (PK) | Auto-increment |
-| name | String | Required, unique |
-| created_at | DateTime | Auto-set |
+AUTHENTICATED REQUEST
+──────────────────────
+Client → GET /api/v1/expenses
+  Header: Authorization: Bearer <AT>
+Backend:
+  1. get_current_user dependency: decode AT, verify sig + exp + claims
+  2. Fetch user from DB
+  3. Pass user.id to Service → filter all queries by user_id
 
-**PaymentMethod** *(predefined, seeded — see Section 3 above)*
-| Field | Type | Constraint |
-|-------|------|-----------|
-| id | Integer (PK) | Auto-increment |
-| name | String | Required, unique (seed data: Cash, Card, UPI, Net Banking, Wallet) |
-| is_predefined | Boolean | True for all V1 rows (flag reserved for Phase 2 custom methods) |
+SILENT TOKEN REFRESH (every 12 min in frontend)
+─────────────────────────────────────────────────
+Client → POST /auth/refresh
+  Cookie: refresh_token=<raw_RT>  (sent automatically by browser)
+  Header: X-CSRF-Token: <csrf_token>  (read from non-HttpOnly cookie)
+Backend:
+  1. Verify CSRF token matches
+  2. Hash raw_RT → look up in DB → verify not revoked + not expired
+  3. Revoke old RT (rotation)
+  4. Issue new AT + new RT
+  5. Set new RT cookie, return new AT
 
-**Budget**
-| Field | Type | Constraint |
-|-------|------|-----------|
-| id | Integer (PK) | Auto-increment |
-| category_id | Integer (FK → Category, nullable) | Null = overall budget |
-| amount_limit | Numeric(10,2) | Required, > 0 |
-| period | String | Default "monthly" |
-| created_at | DateTime | Auto-set |
+LOGOUT
+───────
+Client → POST /auth/logout
+  Cookie: refresh_token=<raw_RT>
+Backend:
+  1. Hash raw_RT → look up in DB → mark revoked
+  2. Clear RT cookie (Set-Cookie: refresh_token=; Max-Age=0)
+  3. Return 200
 
-*Note: See Section 4.4 below for the full database migration and seeding strategy.*
+LOGOUT-ALL
+───────────
+Client → POST /auth/logout-all
+  Header: Authorization: Bearer <AT>
+Backend:
+  1. Validate AT → get user_id
+  2. Revoke ALL RefreshTokens for this user_id
+  3. Clear RT cookie
+  4. Return 200
 
-### 4.4 Database Migration Strategy
+GOOGLE OAUTH FLOW
+──────────────────
+Client → GET /api/v1/auth/google/authorize → redirect to Google consent
+Google → GET /api/v1/auth/google/callback?code=...
+Backend:
+  1. Exchange code for Google tokens (server-to-server via authlib)
+  2. Validate ID token → extract verified email + google_id
+  3. Find existing user by google_id OR email → link / create account
+  4. Issue same AT + RT as regular login
+  5. Redirect to FRONTEND_URL with AT in URL fragment (or via cookie)
+```
 
-PostgreSQL is the confirmed database for V1. All schema management goes through Alembic — no manual `CREATE TABLE` / `ALTER TABLE` against the database at any point, in dev or deployment.
+### 4.3 Data Model — Phase 2 New Tables
+
+**users**
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | Integer PK | Auto-increment |
+| email | String(255) | Required, unique, indexed |
+| display_name | String(100) | Nullable |
+| hashed_password | String | Nullable (null for Google-only accounts) |
+| google_id | String(255) | Nullable, unique, indexed |
+| is_verified | Boolean | Default False |
+| is_active | Boolean | Default True |
+| created_at | DateTime | Auto-set (UTC) |
+| updated_at | DateTime | Auto-updated (UTC) |
+
+**refresh_tokens**
+| Column | Type | Constraints |
+|--------|------|-------------|
+| id | Integer PK | Auto-increment |
+| user_id | Integer FK → users.id | CASCADE DELETE |
+| token_hash | String(255) | BCrypt hash of raw RT; indexed |
+| expires_at | DateTime | RT expiry (30 days from issue) |
+| revoked | Boolean | Default False |
+| device_hint | String(100) | Nullable (User-Agent substring) |
+| created_at | DateTime | Auto-set (UTC) |
+
+### 4.4 Data Model — Phase 2 Modifications to Existing Tables
+
+**expenses** — add column:
+| Column | Type | Constraints |
+|--------|------|-------------|
+| user_id | Integer FK → users.id | NOT NULL, CASCADE DELETE, indexed |
+
+**categories** — add column:
+| Column | Type | Constraints |
+|--------|------|-------------|
+| user_id | Integer FK → users.id | NOT NULL, CASCADE DELETE, indexed |
+| name | String(100) | No longer globally unique — unique per (name, user_id) |
+
+**budgets** — add column:
+| Column | Type | Constraints |
+|--------|------|-------------|
+| user_id | Integer FK → users.id | NOT NULL, CASCADE DELETE, indexed |
+
+**payment_methods** — **unchanged** (global, no user_id)
+
+### 4.5 Database Migration Strategy (All Phases)
 
 | Migration | Purpose |
 |-----------|---------|
-| `0001_initial_schema` | Creates `expense`, `category`, `payment_method`, `budget` tables with all constraints (FKs, NOT NULL, unique) defined in Section 4.2 |
-| `0002_seed_payment_methods` | **Data-seed migration** — inserts the five predefined payment methods (Cash, Card, UPI, Net Banking, Wallet) as rows, with `is_predefined = true` |
-| `0003_seed_default_categories` *(optional, P2 per PRD FR-10)* | Seeds starter categories (Food, Transport, Rent, etc.) so the app isn't empty on first use — only if FR-10 is picked up in V1 |
+| `0001_initial_schema` | ✅ Creates `expenses`, `categories`, `payment_methods`, `budgets` tables |
+| `0002_seed_payment_methods` | ✅ Inserts 5 predefined payment methods |
+| `0003_seed_default_categories` | ✅ Seeds 10 default categories (global, later reassigned) |
+| `0004_add_users_and_refresh_tokens` | **[NEW]** Creates `users` + `refresh_tokens` tables; inserts seed user for existing data |
+| `0005_add_user_id_to_all_tables` | **[NEW]** Adds `user_id` FK to `expenses`, `budgets`, `categories`; backfills to seed user; makes NOT NULL; updates `categories` uniqueness constraint to `(name, user_id)` |
 
-**Rules for migrations:**
-- Every migration must have a working `upgrade()` **and** `downgrade()` function — no one-way migrations.
-- Seed-data migrations (`0002`, `0003`) use Alembic's `op.bulk_insert()` against a lightweight `sa.table()` definition — not the ORM model directly — so seeding stays stable even if the model changes later.
-- Migrations are the only place seed/reference data is created. Nothing in `app/` (routers, CRUD, startup events) should insert default rows — this keeps FR-30 ("no hardcoded data in the application layer") satisfied while still guaranteeing the app isn't empty on first run.
-- `alembic upgrade head` is a required step in the Run → Test → Deploy cycle (PRD Section 9.1) before each deployment.
+**Rules (unchanged from Phase 1):**
+- Every migration must have a working `upgrade()` **and** `downgrade()`.
+- Seed/reference data goes in migrations — never in application startup code.
+- `alembic upgrade head` is a required step before every deployment.
 
-### 4.5 Data Seeding — What's Needed for V1
+### 4.6 API Endpoints — Phase 2 (New)
 
-| Data | Seed in V1? | Method |
-|------|-------------|--------|
-| Payment Methods (Cash, Card, UPI, Net Banking, Wallet) | **Yes — required** | Alembic migration `0002_seed_payment_methods` (fixed list, not user-editable per Section 2.6) |
-| Default Categories (Food, Transport, Rent, etc.) | Optional — only if PRD FR-10 (P2) is included in V1 build | Alembic migration `0003_seed_default_categories`, if included |
-| Expenses, Budgets, User-created Categories | **No** | These are always created live by the user through the API — never seeded, per FR-30 (no hardcoded/demo data) |
+All new endpoints are mounted under `/api/v1/auth`.
 
-### 4.3 API Endpoints (V1 — indicative)
+| Method | Endpoint | Rate Limit | Auth Required | Description |
+|--------|----------|------------|---------------|-------------|
+| POST | `/api/v1/auth/register` | — | No | Create account (email + password). Issues AT + RT. |
+| POST | `/api/v1/auth/login` | 5 req/min | No | Authenticate (email + password). Issues AT + RT. |
+| GET | `/api/v1/auth/google/authorize` | — | No | Redirect to Google consent screen |
+| GET | `/api/v1/auth/google/callback` | — | No | Google OAuth callback — issues AT + RT |
+| POST | `/api/v1/auth/refresh` | — | No (uses RT cookie) | Rotate RT + issue new AT. Requires `X-CSRF-Token` header. |
+| POST | `/api/v1/auth/logout` | — | No (uses RT cookie) | Revoke current session RT + clear cookie |
+| POST | `/api/v1/auth/logout-all` | — | **Yes** (AT) | Revoke all RTs for authenticated user |
+| GET | `/api/v1/auth/me` | — | **Yes** (AT) | Return current user profile |
+| POST | `/api/v1/auth/forgot-password` | 3 req/min | No | Send password reset link to email |
+| POST | `/api/v1/auth/reset-password` | — | No | Reset password via signed token |
+| POST | `/api/v1/auth/change-password` | — | **Yes** (AT) | Change password (must provide current password) |
 
-All endpoints are auto-documented via OpenAPI/Swagger at `/docs`. Each row below is served by its matching `*_controller.py`, which delegates to the matching `*_service.py`.
+### 4.7 API Endpoints — Phase 1 (Modified for Auth)
 
-| Method | Endpoint | Maps to PRD Requirement |
-|--------|----------|--------------------------|
-| GET | `/health` | Non-functional: Reliability/monitoring |
-| POST | `/expenses` | FR-2 (Add) |
-| GET | `/expenses` (supports `?search=&category=&date_from=&date_to=&amount_min=&amount_max=&payment_method=&sort_by=`) | FR-3, FR-11–FR-16 |
-| GET | `/expenses/{id}` | FR-3 |
-| PUT | `/expenses/{id}` | FR-4 (Edit) |
-| DELETE | `/expenses/{id}` | FR-5 (Delete, with confirmation handled client-side) |
-| POST | `/categories` | FR-6 |
-| PUT | `/categories/{id}` | FR-7 |
-| DELETE | `/categories/{id}` | FR-8 (unused-check or reassign logic) |
-| GET | `/categories` | FR-9 (includes expense count per category) |
-| GET | `/payment-methods` | FR-31, FR-33 (includes usage count) |
-| POST | `/budgets` | FR-26 |
-| GET | `/budgets` | FR-27 |
-| GET | `/dashboard/summary` | FR-17, FR-21 |
-| GET | `/dashboard/charts/category` | FR-19 |
-| GET | `/dashboard/charts/trend` | FR-20 |
-| GET | `/dashboard/charts/payment-method` | FR-34/FR-35 |
+All existing endpoints now require a valid Access Token. The `get_current_user` FastAPI dependency is injected into every route.
+
+| Method | Endpoint | Change |
+|--------|----------|--------|
+| GET/POST | `/api/v1/categories` | + `current_user` dep → service filters by `user_id` |
+| GET/PUT/DELETE | `/api/v1/categories/{id}` | + ownership assertion (403 if not owner) |
+| GET | `/api/v1/payment-methods` | **No change** — payment methods are global |
+| GET/POST | `/api/v1/budgets` | + `current_user` dep → service filters by `user_id` |
+| GET/PUT/DELETE | `/api/v1/budgets/{id}` | + ownership assertion |
+| GET/POST | `/api/v1/expenses` | + `current_user` dep → service filters by `user_id` |
+| GET/PUT/DELETE | `/api/v1/expenses/{id}` | + ownership assertion (returns 403 if expense belongs to another user) |
+| GET | `/api/v1/dashboard/*` | + `current_user` dep → all aggregations scoped to `user_id` |
+| GET | `/health` | **No change** — remains public |
+
+### 4.8 Ownership Enforcement Rules
+
+The following logic is applied uniformly in **every Service method** that operates on a user-specific resource:
+
+1. Fetch record from repository by `id`.
+2. If record not found → `404 Not Found`.
+3. If `record.user_id != current_user.id` → `403 Forbidden` (do not reveal existence).
+4. Proceed with the operation.
+
+> **Critical:** The `user_id` used for scoping is always derived from the validated JWT via `get_current_user`. It is **never trusted from the request body, query parameters, or URL path**.
 
 ---
 
 ## 5. Functional Requirements
 
-*(Carried forward from PRD — see PRD Sections 7.1–7.9 for full detail, user stories, and priorities. This SRS references the same FR-IDs for traceability.)*
+*(Phase 1 requirements FR-1 through FR-35 are unchanged — see PRD Sections 7.1–7.9 for full detail.)*
 
-- **7.1 Navigation** — FR-1
-- **7.2 Expense Fields & Validation** — field-level rules enforced via Pydantic schemas at the API layer
-- **7.3 Expense CRUD** — FR-2 to FR-5
-- **7.4 Category Management** — FR-6 to FR-10
-- **7.4-A Payment Method Management** — FR-31 to FR-35 (predefined list, required assignment, usage view, dashboard chart)
-- **7.5 Search, Filter & Sort** — FR-11 to FR-16
-- **7.6 Dashboard** — FR-17 to FR-25, FR-35
-- **7.7 Budget / Spending Goal** — FR-26 to FR-28
-- **7.9 Data Integrity Principle** — FR-30
+### 5.1 Phase 2 — Authentication Functional Requirements
+
+#### FR-42: User Registration
+- **Input:** `display_name` (optional), `email` (required, valid format), `password` (required, min 8 chars)
+- **Processing:**
+  - Validate email not already registered → 409 Conflict if duplicate
+  - Hash password with BCrypt (cost factor ≥ 12)
+  - Create `User` record with `is_verified=False`
+  - Seed 10 default categories for the new user
+  - Issue AT + RT
+- **Output:** `{ access_token, token_type, expires_in, csrf_token }` + RT in HttpOnly cookie
+
+#### FR-43: User Login
+- **Input:** `email`, `password`
+- **Processing:**
+  - Look up user by email → 401 if not found (generic error — do not distinguish "email not found" from "wrong password")
+  - Verify BCrypt hash → 401 if mismatch
+  - Check `is_active=True` → 403 if deactivated
+  - Issue AT + RT
+- **Output:** Same as FR-42
+
+#### FR-44: Google Sign-In
+- **Trigger:** Frontend navigates to `GET /api/v1/auth/google/authorize`
+- **Processing:**
+  - Backend redirects to Google's OAuth consent page
+  - Google redirects to `GET /api/v1/auth/google/callback?code=...`
+  - Backend exchanges `code` for tokens via Google's token endpoint (server-to-server — `authlib`)
+  - Backend validates ID token — extracts verified `email` + `google_id`
+  - Look up user by `google_id` → found: login as that user
+  - Look up user by `email` (no google_id) → found: link google_id + login
+  - Neither found → create new account (no password set), seed default categories
+  - Issue AT + RT
+- **Output:** Redirect to `FRONTEND_URL/?at=<AT>&csrf=<csrf_token>` (frontend stores AT in memory)
+
+#### FR-45: Logout (single session)
+- **Input:** RT cookie
+- **Processing:** Hash raw RT → look up in DB → mark `revoked=True` → clear cookie
+- **Output:** `{ message: "Logged out successfully" }`
+
+#### FR-46: Logout All Sessions
+- **Input:** AT (Authorization header)
+- **Processing:** Validate AT → get `user_id` → mark ALL non-expired RTs for that user as `revoked=True` → clear cookie
+- **Output:** `{ message: "Logged out from all devices" }`
+
+#### FR-47 + FR-48: Forgot Password / Reset Password
+- **Forgot:** `POST /auth/forgot-password { email }`
+  - Look up user → if not found, return 200 anyway (don't leak existence)
+  - Generate `itsdangerous` HMAC-signed token (1h TTL) containing `email`
+  - Send email with `FRONTEND_URL/reset-password?token=<token>` (or log to console in dev)
+- **Reset:** `POST /auth/reset-password { token, new_password }`
+  - Verify token signature + TTL → 400 if invalid/expired
+  - Hash new password → update `User.hashed_password`
+  - Revoke all RTs for the user (force re-login everywhere)
+  - Return 200
+
+#### FR-49: Change Password
+- **Input:** `{ current_password, new_password }` + AT
+- **Processing:** Verify current BCrypt hash → hash new password → update DB
+- **Output:** 200
+
+#### FR-50: Automatic Token Refresh
+- **Frontend implementation:**
+  - On app load: call `POST /auth/refresh` once to check for valid RT (silent re-auth)
+  - Set up `setInterval` to refresh every 12 minutes (before 15 min AT expiry)
+  - On any API call returning 401: attempt one refresh → retry → if still 401 → logout
+- **Backend implementation:** `POST /auth/refresh`
+  - Verify CSRF double-submit cookie
+  - Hash raw RT → look up in DB → verify not revoked + not expired
+  - Mark old RT as revoked (rotation)
+  - Issue new AT + new RT
+  - Return new AT + set new RT cookie
+
+#### FR-51: User Data Isolation
+- **Rule:** Every database query for user-specific resources (expenses, budgets, categories) **must** include `WHERE user_id = :current_user_id`
+- **Enforcement layer:** Services (business logic) and Repositories (queries) — both scoped
+- **Error responses:**
+  - No AT provided → 401 Unauthorized
+  - Invalid/expired AT → 401 Unauthorized
+  - Valid AT but resource belongs to another user → **403 Forbidden**
+  - Resource not found for this user → **404 Not Found**
+- **Never trust `user_id` from client input** — always derive from JWT claims
 
 ---
 
-## 6. Non-Functional Requirements
+## 6. Security Requirements
+
+### 6.1 Password Security
+- BCrypt with cost factor ≥ 12 (via `passlib[bcrypt]`)
+- Minimum password length: 8 characters (enforced in Pydantic schema)
+- Plaintext passwords **never** stored, returned in API responses, or printed to logs
+- Login failure response is intentionally generic — never distinguish "email not found" from "wrong password" to prevent user enumeration
+
+### 6.2 JWT Security
+- Algorithm: HS256
+- Signing secret: `JWT_SECRET_KEY` from environment only — never hardcoded, never committed to Git
+- Required claims in every AT: `sub` (user_id), `email`, `exp`, `iat`, `type: "access"`
+- Validate on every protected request: signature, `exp`, `type` claim
+- AT TTL: 15 minutes
+- RT TTL: 30 days
+
+### 6.3 Refresh Token Security
+- RT is a cryptographically random 32-byte value (URL-safe base64)
+- Only BCrypt hash of RT is stored in the database
+- RT delivered in `HttpOnly; Secure; SameSite=Strict` cookie — inaccessible to JavaScript
+- RT rotation on every use: old RT immediately revoked, new RT issued
+- Revoked or expired RTs rejected with 401
+- On password reset: all existing RTs for the user are revoked
+
+### 6.4 CSRF Protection
+- Risk: a malicious site can trigger the user's browser to send the RT cookie to `/auth/refresh`
+- Mitigation: **Double-Submit Cookie Pattern**
+  - Server sets a second cookie `csrf_token=<random>` (non-HttpOnly, SameSite=Strict)
+  - Frontend reads this cookie and sends `X-CSRF-Token: <value>` header on every call to `/auth/refresh`
+  - Backend verifies header value matches cookie value — a cross-origin site cannot read the cookie value
+
+### 6.5 Rate Limiting
+- `slowapi` middleware applied to:
+  - `POST /auth/login` — **5 requests/minute** per IP
+  - `POST /auth/forgot-password` — **3 requests/minute** per IP
+- Response: HTTP 429 Too Many Requests with `Retry-After` header
+
+### 6.6 Google OAuth Security
+- Authorization code exchange happens **server-to-server** (backend → Google token endpoint)
+- ID token validated server-side (signature, `aud` claim matches `GOOGLE_CLIENT_ID`, `exp`)
+- User info (email, google_id) extracted from validated ID token only — **never from frontend-provided data**
+- `state` parameter used in OAuth flow to prevent CSRF on the callback endpoint
+
+### 6.7 CORS Configuration
+- Development: `allow_origins` includes `http://localhost:3000`, `http://localhost:5173`
+- Production: restrict to exact frontend origin only (not `*`)
+- `allow_credentials=True` required for cookie-based refresh endpoint
+
+### 6.8 Environment Variables — New in Phase 2
+
+```env
+# Backend .env additions
+
+# JWT (REQUIRED)
+JWT_SECRET_KEY=<minimum 32-char random string>
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=15
+REFRESH_TOKEN_EXPIRE_DAYS=30
+
+# Google OAuth (optional — leave empty to disable Google Sign-In)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=http://localhost:8000/api/v1/auth/google/callback
+
+# Frontend URL (for password reset emails)
+FRONTEND_URL=http://localhost:3000
+
+# SMTP — optional (if empty, token is printed to server console log in dev)
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=noreply@fintrack.local
+```
+
+---
+
+## 7. Frontend Auth Integration
+
+### 7.1 AuthContext
+
+`src/contexts/AuthContext.jsx` wraps the entire app and provides:
+
+```js
+{
+  user,           // { id, email, display_name } or null
+  accessToken,    // string or null — stored in memory only
+  isLoading,      // true while checking session on mount
+  isAuthenticated,// boolean
+  login(email, password) → Promise<void>,
+  register(display_name, email, password) → Promise<void>,
+  logout() → Promise<void>,
+  logoutAll() → Promise<void>,
+  refreshToken() → Promise<string>,  // returns new AT
+}
+```
+
+### 7.2 API Client Modifications (`src/api/client.js`)
+
+- New `auth` namespace: `login`, `register`, `refresh`, `logout`, `logoutAll`, `me`, `forgotPassword`, `resetPassword`, `changePassword`
+- All protected requests include `Authorization: Bearer <accessToken>` header (injected via `AuthContext`)
+- Refresh endpoint uses `credentials: 'include'` to send RT cookie
+- Refresh endpoint sends `X-CSRF-Token` header (read from non-HttpOnly `csrf_token` cookie)
+- **401 interceptor:** on any 401, attempt silent refresh → retry original request → if still 401, call `logout()`
+
+### 7.3 App Shell Logic (`src/App.jsx`)
+
+```jsx
+if (isLoading) → <FullPageSpinner />
+if (!isAuthenticated) → <AuthPage />
+else → <MainLayout />
+```
+
+---
+
+## 8. Non-Functional Requirements
 
 | Category | Requirement |
 |----------|-------------|
-| **Performance** | API responses for list/dashboard endpoints should return in a reasonable time at realistic V1 data volumes (single-user, thousands of rows) |
-| **Validation** | All input validation (positive amount, no future date, required fields) enforced server-side via Pydantic schemas — never trust client-side validation alone |
-| **API Documentation** | Every endpoint must be visible and testable via Swagger UI (`/docs`) without needing the frontend |
-| **Migrations** | Every schema change must go through an Alembic migration — no direct manual schema edits |
-| **Data Integrity** | No hardcoded/dummy data anywhere — predefined payment methods are seeded via migration, not hardcoded in application logic |
-| **Testability** | Each router/CRUD module independently testable (e.g. via `pytest` + FastAPI's `TestClient`) before deployment |
-| **Scalability** | Schema and API structure must not block Phase 2 additions (login/user scoping, custom payment methods, recurring expenses) |
-| **Reliability** | `/health` endpoint required for basic uptime verification during local/private deployment |
-| **Security (V1-scoped)** | No public internet exposure; no auth layer required, but API should not be designed in a way that makes adding auth (Phase 2) structurally difficult |
+| **Performance** | API responses for list/dashboard endpoints return in reasonable time at realistic V1 data volumes |
+| **Validation** | All input validation enforced server-side via Pydantic — client-side validation is UX-only |
+| **API Documentation** | Every endpoint (including all `/auth/*`) visible and testable via Swagger UI at `/docs` |
+| **Migrations** | Every schema change goes through an Alembic migration — no direct manual schema edits |
+| **Data Integrity** | No hardcoded/dummy data anywhere |
+| **Testability** | Each module independently testable via `pytest` + `TestClient` before deployment |
+| **Scalability** | Schema and API structure must not block Phase 3 additions |
+| **Reliability** | `/health` endpoint required for uptime verification |
+| **Security** | BCrypt hashing, JWT validation, RT rotation, CSRF protection, rate limiting — all must be active before deployment |
+| **HTTPS** | Required in production. `Secure` flag on RT cookie enforces this. |
 
 ---
 
-## 7. Definition of Done (Technical, V1)
+## 9. Testing Requirements
 
-- All entities (Expense, Category, PaymentMethod, Budget) implemented as SQLAlchemy 2.x models against **PostgreSQL**
-- `alembic upgrade head` runs cleanly on a fresh, empty PostgreSQL database with no manual intervention
-- Payment method seed migration (`0002_seed_payment_methods`) verified to insert exactly the five predefined methods, with no duplicate rows on repeated `upgrade`/`downgrade` cycles
-- All schema changes tracked via Alembic migrations — no manual schema edits at any point
-- All endpoints implemented in FastAPI, documented and testable via Swagger UI at `/docs`
-- Server runs via Uvicorn in both dev (`--reload`) and deployed mode
-- Every expense enforces a required, predefined payment method at the API layer (not just UI)
-- Dashboard exposes a payment-method breakdown endpoint consumed by the frontend chart
-- No hardcoded data in any endpoint response — verified against a freshly migrated, empty database
+### 9.1 Backend Test Coverage (Phase 2)
+
+Extend `tests/test_api.py` to cover:
+
+| Test Case | Expected |
+|-----------|----------|
+| `POST /auth/register` with valid data | 201, returns AT |
+| `POST /auth/register` with duplicate email | 409 Conflict |
+| `POST /auth/login` with correct credentials | 200, returns AT, sets RT cookie |
+| `POST /auth/login` with wrong password | 401 (generic message) |
+| `GET /auth/me` with valid AT | 200, returns user profile |
+| `GET /auth/me` with expired AT | 401 |
+| `GET /auth/me` with no token | 401 |
+| `POST /auth/refresh` with valid RT cookie | 200, new AT, new RT cookie |
+| `POST /auth/refresh` with revoked RT | 401 |
+| `POST /auth/refresh` without CSRF header | 403 |
+| `POST /auth/logout` | 200, RT revoked |
+| `POST /auth/logout-all` | 200, all RTs revoked |
+| `GET /api/v1/expenses` without AT | 401 |
+| `GET /api/v1/expenses` with AT | 200, returns only own expenses |
+| `GET /api/v1/expenses/{other_user_expense_id}` with valid AT | 403 |
+| `POST /auth/login` × 6 in 1 min | 429 Too Many Requests |
+| `POST /auth/forgot-password` × 4 in 1 min | 429 Too Many Requests |
+| `POST /auth/reset-password` with valid token | 200, password changed |
+| `POST /auth/reset-password` with expired token | 400 |
+| `POST /auth/change-password` with wrong current password | 400 |
+| Two users — User A can't see User B's categories/budgets | 403/404 |
+
+### 9.2 Run Commands
+
+```powershell
+# Backend — run all tests
+cd e:\FinTrack\fintrack-backend
+.venv\Scripts\pytest -v tests/
+
+# Backend — run only auth tests
+.venv\Scripts\pytest -v tests/ -k "auth"
+
+# Backend — run server
+.venv\Scripts\uvicorn app.main:app --reload --port 8000
+
+# Apply new migrations
+.venv\Scripts\alembic upgrade head
+
+# Frontend — dev server
+cd e:\FinTrack\fintrack-frontend
+npm run dev
+```
 
 ---
 
-## 8. Out of Scope (V1) — Technical
+## 10. Definition of Done (Phase 2 — Technical)
 
-- Authentication/authorization middleware
-- Multi-tenant / `user_id` scoping
-- Async task queues, background jobs, notifications
-- Report export (PDF/Excel/CSV) generation
-- Custom/editable payment methods (Phase 2)
+- `users` and `refresh_tokens` tables created via Alembic migration `0004`
+- `user_id` FK added to `expenses`, `categories`, `budgets` via Alembic migration `0005`
+- Existing pre-auth data backfilled to seed user — `alembic upgrade head` runs cleanly on production DB
+- All `/auth/*` endpoints implemented and documented in Swagger UI (`/docs`)
+- AT (15 min, HS256) issued on register/login/refresh/Google callback
+- RT (30 days) issued as HttpOnly cookie — never returned in JSON body
+- RT rotation active — old RT revoked on every `/auth/refresh` call
+- Revoked/expired RTs rejected with 401
+- BCrypt hashing verified — no plaintext passwords in DB or logs
+- `JWT_SECRET_KEY` only in `.env` — not in any source file or git history
+- All existing endpoints return 401 without AT
+- All existing endpoints return only the authenticated user's data
+- Cross-user access to resources by ID returns 403
+- CSRF double-submit cookie verification active on `/auth/refresh`
+- Rate limiting active on `/auth/login` (5/min) and `/auth/forgot-password` (3/min)
+- Google Sign-In backend flow implemented (disable gracefully if `GOOGLE_CLIENT_ID` not set)
+- Forgot/Reset password flow works (console fallback in dev)
+- Frontend `AuthContext` manages AT in memory, RT never touched by JS
+- Frontend auto-refresh running (every 12 min)
+- Frontend 401 interceptor → silent refresh → retry → logout
+- All Phase 2 test cases passing
+- `alembic downgrade` works cleanly for both `0004` and `0005`
+
+---
+
+## 11. Out of Scope (Phase 2) — Technical
+
+- RBAC / admin roles / permission tiers
+- Two-factor authentication (2FA / TOTP)
+- Multi-tenant shared accounts (Phase 4)
+- Async task queues / background jobs
+- Report export (PDF/Excel/CSV) — Phase 3
+- Custom/editable payment methods — Phase 3
+- Income tracking — Phase 3

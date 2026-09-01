@@ -10,20 +10,25 @@ from app.models.payment_method import PaymentMethod
 
 class ExpenseRepository:
     @staticmethod
-    def get_by_id(db: Session, expense_id: int) -> Optional[Expense]:
+    def get_by_id(db: Session, expense_id: int, user_id: Optional[int] = None) -> Optional[Expense]:
+        conditions = [Expense.id == expense_id]
+        if user_id is not None:
+            conditions.append(Expense.user_id == user_id)
+
         stmt = (
             select(Expense)
             .options(
                 selectinload(Expense.category),
                 selectinload(Expense.payment_method)
             )
-            .where(Expense.id == expense_id)
+            .where(and_(*conditions))
         )
         return db.scalar(stmt)
 
     @staticmethod
     def get_all(
         db: Session,
+        user_id: int,
         search: Optional[str] = None,
         category_id: Optional[int] = None,
         payment_method_id: Optional[int] = None,
@@ -35,7 +40,7 @@ class ExpenseRepository:
         skip: int = 0,
         limit: int = 50,
     ) -> Tuple[List[Expense], int]:
-        conditions = []
+        conditions = [Expense.user_id == user_id]
 
         if search:
             search_pattern = f"%{search.strip()}%"
@@ -64,7 +69,7 @@ class ExpenseRepository:
         if amount_max is not None:
             conditions.append(Expense.amount <= amount_max)
 
-        where_clause = and_(*conditions) if conditions else True
+        where_clause = and_(*conditions)
 
         # Total count query
         count_stmt = select(func.count(Expense.id)).where(where_clause)
@@ -103,6 +108,7 @@ class ExpenseRepository:
     @staticmethod
     def create(
         db: Session,
+        user_id: int,
         title: str,
         category_id: int,
         payment_method_id: int,
@@ -111,6 +117,7 @@ class ExpenseRepository:
         notes: Optional[str] = None
     ) -> Expense:
         expense = Expense(
+            user_id=user_id,
             title=title.strip(),
             category_id=category_id,
             payment_method_id=payment_method_id,
@@ -122,7 +129,7 @@ class ExpenseRepository:
         db.commit()
         db.refresh(expense)
         # Eager load relationships before returning
-        return ExpenseRepository.get_by_id(db, expense.id) or expense
+        return ExpenseRepository.get_by_id(db, expense.id, user_id=user_id) or expense
 
     @staticmethod
     def update(
@@ -150,7 +157,7 @@ class ExpenseRepository:
 
         db.commit()
         db.refresh(expense)
-        return ExpenseRepository.get_by_id(db, expense.id) or expense
+        return ExpenseRepository.get_by_id(db, expense.id, user_id=expense.user_id) or expense
 
     @staticmethod
     def delete(db: Session, expense: Expense) -> None:
@@ -158,8 +165,8 @@ class ExpenseRepository:
         db.commit()
 
     @staticmethod
-    def get_spending_by_category(db: Session, date_from: Optional[date] = None, date_to: Optional[date] = None):
-        conditions = []
+    def get_spending_by_category(db: Session, user_id: int, date_from: Optional[date] = None, date_to: Optional[date] = None):
+        conditions = [Expense.user_id == user_id]
         if date_from:
             conditions.append(Expense.date >= date_from)
         if date_to:
@@ -172,15 +179,15 @@ class ExpenseRepository:
                 func.sum(Expense.amount).label("total_amount")
             )
             .join(Category, Category.id == Expense.category_id)
-            .where(and_(*conditions) if conditions else True)
+            .where(and_(*conditions))
             .group_by(Category.id, Category.name)
             .order_by(func.sum(Expense.amount).desc())
         )
         return db.execute(stmt).all()
 
     @staticmethod
-    def get_spending_by_payment_method(db: Session, date_from: Optional[date] = None, date_to: Optional[date] = None):
-        conditions = []
+    def get_spending_by_payment_method(db: Session, user_id: int, date_from: Optional[date] = None, date_to: Optional[date] = None):
+        conditions = [Expense.user_id == user_id]
         if date_from:
             conditions.append(Expense.date >= date_from)
         if date_to:
@@ -194,21 +201,27 @@ class ExpenseRepository:
                 func.count(Expense.id).label("transaction_count")
             )
             .join(PaymentMethod, PaymentMethod.id == Expense.payment_method_id)
-            .where(and_(*conditions) if conditions else True)
+            .where(and_(*conditions))
             .group_by(PaymentMethod.id, PaymentMethod.name)
             .order_by(func.sum(Expense.amount).desc())
         )
         return db.execute(stmt).all()
 
     @staticmethod
-    def get_daily_spending_trend(db: Session, date_from: date, date_to: date):
+    def get_daily_spending_trend(db: Session, user_id: int, date_from: date, date_to: date):
         stmt = (
             select(
                 Expense.date.label("date"),
                 func.sum(Expense.amount).label("total_amount"),
                 func.count(Expense.id).label("count")
             )
-            .where(and_(Expense.date >= date_from, Expense.date <= date_to))
+            .where(
+                and_(
+                    Expense.user_id == user_id,
+                    Expense.date >= date_from,
+                    Expense.date <= date_to
+                )
+            )
             .group_by(Expense.date)
             .order_by(Expense.date.asc())
         )

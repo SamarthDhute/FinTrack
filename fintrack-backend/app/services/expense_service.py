@@ -30,6 +30,7 @@ class ExpenseService:
     def get_expenses(
         cls,
         db: Session,
+        user_id: int,
         search: Optional[str] = None,
         category_id: Optional[int] = None,
         payment_method_id: Optional[int] = None,
@@ -43,6 +44,7 @@ class ExpenseService:
     ) -> Dict[str, Any]:
         items, total = ExpenseRepository.get_all(
             db=db,
+            user_id=user_id,
             search=search,
             category_id=category_id,
             payment_method_id=payment_method_id,
@@ -62,26 +64,31 @@ class ExpenseService:
         }
 
     @classmethod
-    def get_expense_by_id(cls, db: Session, expense_id: int) -> ExpenseResponse:
+    def get_expense_by_id(cls, db: Session, expense_id: int, user_id: int) -> ExpenseResponse:
         expense = ExpenseRepository.get_by_id(db, expense_id)
         if not expense:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Expense with ID {expense_id} not found"
             )
+        if expense.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to access this expense"
+            )
         return cls._to_response(expense)
 
     @classmethod
-    def create_expense(cls, db: Session, data: ExpenseCreate) -> ExpenseResponse:
-        # Validate category existence
-        category = CategoryRepository.get_by_id(db, data.category_id)
+    def create_expense(cls, db: Session, data: ExpenseCreate, user_id: int) -> ExpenseResponse:
+        # Validate category existence (scoped to user)
+        category = CategoryRepository.get_by_id(db, data.category_id, user_id=user_id)
         if not category:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Category with ID {data.category_id} not found"
             )
 
-        # Validate payment method existence
+        # Validate payment method existence (global)
         method = PaymentMethodRepository.get_by_id(db, data.payment_method_id)
         if not method:
             raise HTTPException(
@@ -98,6 +105,7 @@ class ExpenseService:
 
         created = ExpenseRepository.create(
             db=db,
+            user_id=user_id,
             title=data.title,
             category_id=data.category_id,
             payment_method_id=data.payment_method_id,
@@ -108,16 +116,21 @@ class ExpenseService:
         return cls._to_response(created)
 
     @classmethod
-    def update_expense(cls, db: Session, expense_id: int, data: ExpenseUpdate) -> ExpenseResponse:
+    def update_expense(cls, db: Session, expense_id: int, data: ExpenseUpdate, user_id: int) -> ExpenseResponse:
         expense = ExpenseRepository.get_by_id(db, expense_id)
         if not expense:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Expense with ID {expense_id} not found"
             )
+        if expense.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to modify this expense"
+            )
 
         if data.category_id is not None:
-            category = CategoryRepository.get_by_id(db, data.category_id)
+            category = CategoryRepository.get_by_id(db, data.category_id, user_id=user_id)
             if not category:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -151,12 +164,17 @@ class ExpenseService:
         return cls._to_response(updated)
 
     @staticmethod
-    def delete_expense(db: Session, expense_id: int) -> dict:
+    def delete_expense(db: Session, expense_id: int, user_id: int) -> dict:
         expense = ExpenseRepository.get_by_id(db, expense_id)
         if not expense:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Expense with ID {expense_id} not found"
+            )
+        if expense.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to delete this expense"
             )
 
         ExpenseRepository.delete(db, expense)

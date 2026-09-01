@@ -17,7 +17,7 @@ class DashboardService:
         return start_date, end_date
 
     @classmethod
-    def get_summary(cls, db: Session) -> Dict[str, Any]:
+    def get_summary(cls, db: Session, user_id: int) -> Dict[str, Any]:
         today = date.today()
         current_start, current_end = cls._get_month_range(today.year, today.month)
 
@@ -31,24 +31,24 @@ class DashboardService:
         prev_start, prev_end = cls._get_month_range(prev_year, prev_month)
 
         # 1. Total all-time spend
-        all_time_spend = BudgetRepository.get_spent_amount(db, date(2000, 1, 1), today)
+        all_time_spend = BudgetRepository.get_spent_amount(db, user_id=user_id, start_date=date(2000, 1, 1), end_date=today)
 
         # 2. Current month spend
-        current_month_spend = BudgetRepository.get_spent_amount(db, current_start, current_end)
+        current_month_spend = BudgetRepository.get_spent_amount(db, user_id=user_id, start_date=current_start, end_date=current_end)
 
         # 3. Previous month spend & % change
-        prev_month_spend = BudgetRepository.get_spent_amount(db, prev_start, prev_end)
+        prev_month_spend = BudgetRepository.get_spent_amount(db, user_id=user_id, start_date=prev_start, end_date=prev_end)
         if prev_month_spend > Decimal("0.00"):
             pct_change = round(((current_month_spend - prev_month_spend) / prev_month_spend) * 100, 2)
         else:
             pct_change = Decimal("0.00")
 
         # 4. Recent 5 expenses
-        recent_expenses, _ = ExpenseRepository.get_all(db, sort_by="date_desc", skip=0, limit=5)
+        recent_expenses, _ = ExpenseRepository.get_all(db, user_id=user_id, sort_by="date_desc", skip=0, limit=5)
         recent_list = [ExpenseService._to_response(e) for e in recent_expenses]
 
         # 5. Overall budget info
-        overall_budget = BudgetRepository.get_by_category(db, category_id=None, period="monthly")
+        overall_budget = BudgetRepository.get_by_category(db, user_id=user_id, category_id=None, period="monthly")
         budget_summary = None
         if overall_budget:
             spent = current_month_spend
@@ -78,12 +78,12 @@ class DashboardService:
         }
 
     @classmethod
-    def get_category_chart(cls, db: Session, date_from: Optional[date] = None, date_to: Optional[date] = None) -> List[Dict[str, Any]]:
+    def get_category_chart(cls, db: Session, user_id: int, date_from: Optional[date] = None, date_to: Optional[date] = None) -> List[Dict[str, Any]]:
         today = date.today()
         if not date_from or not date_to:
             date_from, date_to = cls._get_month_range(today.year, today.month)
 
-        rows = ExpenseRepository.get_spending_by_category(db, date_from, date_to)
+        rows = ExpenseRepository.get_spending_by_category(db, user_id=user_id, date_from=date_from, date_to=date_to)
         total_sum = sum((Decimal(str(r.total_amount or 0)) for r in rows), Decimal("0.00"))
 
         chart_data = []
@@ -99,12 +99,12 @@ class DashboardService:
         return chart_data
 
     @classmethod
-    def get_payment_method_chart(cls, db: Session, date_from: Optional[date] = None, date_to: Optional[date] = None) -> List[Dict[str, Any]]:
+    def get_payment_method_chart(cls, db: Session, user_id: int, date_from: Optional[date] = None, date_to: Optional[date] = None) -> List[Dict[str, Any]]:
         today = date.today()
         if not date_from or not date_to:
             date_from, date_to = cls._get_month_range(today.year, today.month)
 
-        rows = ExpenseRepository.get_spending_by_payment_method(db, date_from, date_to)
+        rows = ExpenseRepository.get_spending_by_payment_method(db, user_id=user_id, date_from=date_from, date_to=date_to)
         total_sum = sum((Decimal(str(r.total_amount or 0)) for r in rows), Decimal("0.00"))
 
         chart_data = []
@@ -121,10 +121,10 @@ class DashboardService:
         return chart_data
 
     @classmethod
-    def get_trend_chart(cls, db: Session, days: int = 30) -> List[Dict[str, Any]]:
+    def get_trend_chart(cls, db: Session, user_id: int, days: int = 30) -> List[Dict[str, Any]]:
         today = date.today()
         start_date = today - timedelta(days=days - 1)
-        rows = ExpenseRepository.get_daily_spending_trend(db, start_date, today)
+        rows = ExpenseRepository.get_daily_spending_trend(db, user_id=user_id, date_from=start_date, date_to=today)
 
         # Build a continuous dictionary of dates
         date_map = {r.date.isoformat(): Decimal(str(r.total_amount or 0)) for r in rows}

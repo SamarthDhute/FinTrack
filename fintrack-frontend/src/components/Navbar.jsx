@@ -7,11 +7,15 @@ import {
   Plus, 
   Menu, 
   X,
-  WalletCards
+  WalletCards,
+  LogOut,
+  User as UserIcon
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -24,6 +28,8 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense }) => {
     onSelectTab(tabId);
     setMobileMenuOpen(false);
   };
+
+  const displayName = user?.display_name || user?.email?.split('@')[0] || 'User';
 
   return (
     <header className="header-navbar">
@@ -72,6 +78,43 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense }) => {
             <span className="hide-on-mobile">Add Expense</span>
           </button>
 
+          {/* User Info & Logout Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '0.5rem' }}>
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.35rem 0.65rem',
+                borderRadius: '20px',
+                background: 'rgba(255, 255, 255, 0.06)',
+                fontSize: '0.8125rem',
+                color: '#cbd5e1'
+              }}
+              className="hide-on-mobile"
+              title={user?.email}
+            >
+              <UserIcon size={14} color="#818cf8" />
+              <span>{displayName}</span>
+            </div>
+
+            <button
+              onClick={logout}
+              className="btn btn-sm"
+              style={{
+                padding: '0.4rem',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                color: '#fca5a5',
+                cursor: 'pointer',
+                borderRadius: '8px'
+              }}
+              title="Log out"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+
           {/* Mobile Hamburger Button */}
           <button 
             className="mobile-menu-btn"
@@ -86,6 +129,9 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense }) => {
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
         <div className="mobile-drawer">
+          <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', color: '#94a3b8', fontSize: '0.875rem' }}>
+            Signed in as: <strong style={{ color: '#f8fafc' }}>{user?.email}</strong>
+          </div>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
