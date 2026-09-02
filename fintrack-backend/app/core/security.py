@@ -206,6 +206,40 @@ def _dispatch_email(to_email: str, subject: str, html_body: str, fallback_url: s
             print(f"[WARNING] Failed to send via Resend: {exc}")
             return False
 
+    def _send_brevo() -> bool:
+        brevo_key = (
+            settings.BREVO_API_KEY.strip()
+            if settings.BREVO_API_KEY
+            else (settings.SMTP_PASSWORD.strip() if settings.SMTP_PASSWORD and settings.SMTP_PASSWORD.startswith("xkeysib-") else "")
+        )
+        if not brevo_key:
+            return False
+        try:
+            from_email = settings.SMTP_FROM or settings.SMTP_USER or "noreply@fintrack.app"
+            with httpx.Client(timeout=10.0) as client:
+                response = client.post(
+                    "https://api.brevo.com/v3/smtp/email",
+                    headers={
+                        "api-key": brevo_key,
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "sender": {"name": "FinTrack", "email": from_email},
+                        "to": [{"email": to_email}],
+                        "subject": subject,
+                        "htmlContent": html_body,
+                    },
+                )
+                if response.status_code < 400:
+                    print(f"[INFO] Brevo email successfully sent to {to_email}: {response.text}")
+                    return True
+                else:
+                    print(f"[ERROR] Brevo API error ({response.status_code}) for {to_email}: {response.text}")
+                    return False
+        except Exception as exc:
+            print(f"[WARNING] Failed to send via Brevo: {exc}")
+            return False
+
     def _send_smtp() -> bool:
         if not settings.SMTP_HOST:
             return False
@@ -228,13 +262,18 @@ def _dispatch_email(to_email: str, subject: str, html_body: str, fallback_url: s
             print(f"[WARNING] Failed to send via SMTP: {exc}")
             return False
 
-    if provider == "resend":
+    if provider == "brevo":
+        if _send_brevo():
+            return
+    elif provider == "resend":
         if _send_resend():
             return
     elif provider == "smtp":
         if _send_smtp():
             return
     elif provider == "auto":
+        if (settings.BREVO_API_KEY or (settings.SMTP_PASSWORD and settings.SMTP_PASSWORD.startswith("xkeysib-"))) and _send_brevo():
+            return
         if _get_resend_api_key() and _send_resend():
             return
         if settings.SMTP_HOST and _send_smtp():

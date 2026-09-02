@@ -55,7 +55,7 @@ class Settings(BaseSettings):
             url = str(v).strip()
         return url.rstrip("/")
 
-    # ── Email Settings (Provider: "auto", "smtp", "resend", "console") ───
+    # ── Email Settings (Provider: "auto", "smtp", "resend", "brevo", "console") ───
     EMAIL_PROVIDER: str = "auto"
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
@@ -63,6 +63,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM: str = ""
     RESEND_API_KEY: str = ""
+    BREVO_API_KEY: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",
