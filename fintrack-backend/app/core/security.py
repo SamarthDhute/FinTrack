@@ -11,7 +11,7 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from jose import jwt, JWTError
 
 from app.core.config import settings
-import requests
+import httpx
 
 
 # ── Password Hashing (Direct native bcrypt) ───────────────────────────────────
@@ -140,17 +140,18 @@ def send_password_reset_email(to_email: str, reset_token: str) -> None:
     # 1. Try Resend API
     if settings.RESEND_API_KEY:
         try:
-            response = requests.post(
-                "https://api.resend.com/emails",
-                headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
-                json={
-                    "from": settings.SMTP_FROM,
-                    "to": [to_email],
-                    "subject": "FinTrack — Password Reset",
-                    "html": html_body,
-                },
-            )
-            response.raise_for_status()
+            with httpx.Client() as client:
+                response = client.post(
+                    "https://api.resend.com/emails",
+                    headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+                    json={
+                        "from": settings.SMTP_FROM,
+                        "to": [to_email],
+                        "subject": "FinTrack — Password Reset",
+                        "html": html_body,
+                    },
+                )
+                response.raise_for_status()
             return
         except Exception as exc:
             print(f"[WARNING] Failed to send via Resend: {exc}")
