@@ -146,6 +146,26 @@ def generate_csrf_token() -> str:
     return secrets.token_urlsafe(32)
 
 
+def _get_resend_api_key() -> Optional[str]:
+    """Retrieve Resend API key from RESEND_API_KEY or auto-detect from SMTP_PASSWORD."""
+    if settings.RESEND_API_KEY and settings.RESEND_API_KEY.strip():
+        return settings.RESEND_API_KEY.strip()
+    if settings.SMTP_PASSWORD and settings.SMTP_PASSWORD.strip().startswith("re_"):
+        return settings.SMTP_PASSWORD.strip()
+    return None
+
+
+def _get_resend_from_email() -> str:
+    """Return a valid sender email for Resend, preventing unverified public domain 403 errors."""
+    from_email = settings.SMTP_FROM.strip() if settings.SMTP_FROM else ""
+    public_domains = ("gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com")
+    if not from_email or any(f"@{d}" in from_email.lower() for d in public_domains):
+        return "FinTrack <onboarding@resend.dev>"
+    if "<" not in from_email and "@" in from_email:
+        return f"FinTrack <{from_email}>"
+    return from_email
+
+
 # ── Email Sending ──────────────────────────────────────────────────────────────
 
 def send_password_reset_email(to_email: str, reset_token: str) -> None:
@@ -185,22 +205,31 @@ def send_password_reset_email(to_email: str, reset_token: str) -> None:
     </html>
     """
 
-    # 1. Try Resend API
-    if settings.RESEND_API_KEY:
+    # 1. Try Resend API (via RESEND_API_KEY or re_ key in SMTP_PASSWORD)
+    resend_key = _get_resend_api_key()
+    if resend_key:
         try:
-            with httpx.Client() as client:
+            from_email = _get_resend_from_email()
+
+            with httpx.Client(timeout=10.0) as client:
                 response = client.post(
                     "https://api.resend.com/emails",
-                    headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+                    headers={
+                        "Authorization": f"Bearer {resend_key}",
+                        "Content-Type": "application/json",
+                    },
                     json={
-                        "from": settings.SMTP_FROM,
+                        "from": from_email,
                         "to": [to_email],
                         "subject": "FinTrack — Password Reset",
                         "html": html_body,
                     },
                 )
-                response.raise_for_status()
-            return
+                if response.status_code < 400:
+                    print(f"[INFO] Resend password reset email sent to {to_email}: {response.text}")
+                    return
+                else:
+                    print(f"[ERROR] Resend API rejected password reset to {to_email} ({response.status_code}): {response.text}")
         except Exception as exc:
             print(f"[WARNING] Failed to send via Resend: {exc}")
 
@@ -267,22 +296,31 @@ def send_verification_email(to_email: str, verify_token: str) -> None:
     </html>
     """
 
-    # 1. Try Resend API
-    if settings.RESEND_API_KEY:
+    # 1. Try Resend API (via RESEND_API_KEY or re_ key in SMTP_PASSWORD)
+    resend_key = _get_resend_api_key()
+    if resend_key:
         try:
-            with httpx.Client() as client:
+            from_email = _get_resend_from_email()
+
+            with httpx.Client(timeout=10.0) as client:
                 response = client.post(
                     "https://api.resend.com/emails",
-                    headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+                    headers={
+                        "Authorization": f"Bearer {resend_key}",
+                        "Content-Type": "application/json",
+                    },
                     json={
-                        "from": settings.SMTP_FROM,
+                        "from": from_email,
                         "to": [to_email],
                         "subject": "FinTrack — Verify Your Email",
                         "html": html_body,
                     },
                 )
-                response.raise_for_status()
-            return
+                if response.status_code < 400:
+                    print(f"[INFO] Resend verification email sent to {to_email}: {response.text}")
+                    return
+                else:
+                    print(f"[ERROR] Resend API rejected verification to {to_email} ({response.status_code}): {response.text}")
         except Exception as exc:
             print(f"[WARNING] Failed to send verification via Resend: {exc}")
 
