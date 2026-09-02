@@ -166,6 +166,88 @@ def _get_resend_from_email() -> str:
     return from_email
 
 
+def _dispatch_email(to_email: str, subject: str, html_body: str, fallback_url: str) -> None:
+    """
+    Unified email dispatcher supporting:
+    - EMAIL_PROVIDER="smtp" -> Uses SMTP (Gmail, etc.)
+    - EMAIL_PROVIDER="resend" -> Uses Resend HTTPS REST API
+    - EMAIL_PROVIDER="auto" -> Tries Resend first if key present, else SMTP
+    - EMAIL_PROVIDER="console" -> Prints link to console
+    """
+    provider = settings.EMAIL_PROVIDER.lower().strip() if settings.EMAIL_PROVIDER else "auto"
+
+    def _send_resend() -> bool:
+        resend_key = _get_resend_api_key()
+        if not resend_key:
+            return False
+        try:
+            from_email = _get_resend_from_email()
+            with httpx.Client(timeout=10.0) as client:
+                response = client.post(
+                    "https://api.resend.com/emails",
+                    headers={
+                        "Authorization": f"Bearer {resend_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "from": from_email,
+                        "to": [to_email],
+                        "subject": subject,
+                        "html": html_body,
+                    },
+                )
+                if response.status_code < 400:
+                    print(f"[INFO] Resend email successfully sent to {to_email}: {response.text}")
+                    return True
+                else:
+                    print(f"[ERROR] Resend API error ({response.status_code}) for {to_email}: {response.text}")
+                    return False
+        except Exception as exc:
+            print(f"[WARNING] Failed to send via Resend: {exc}")
+            return False
+
+    def _send_smtp() -> bool:
+        if not settings.SMTP_HOST:
+            return False
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            from_addr = settings.SMTP_FROM or settings.SMTP_USER
+            msg["From"] = from_addr
+            msg["To"] = to_email
+            msg.attach(MIMEText(html_body, "html"))
+
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
+                server.starttls()
+                if settings.SMTP_USER:
+                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                server.sendmail(from_addr, to_email, msg.as_string())
+            print(f"[INFO] SMTP ({settings.SMTP_HOST}) email successfully sent to {to_email}")
+            return True
+        except Exception as exc:
+            print(f"[WARNING] Failed to send via SMTP: {exc}")
+            return False
+
+    if provider == "resend":
+        if _send_resend():
+            return
+    elif provider == "smtp":
+        if _send_smtp():
+            return
+    elif provider == "auto":
+        if _get_resend_api_key() and _send_resend():
+            return
+        if settings.SMTP_HOST and _send_smtp():
+            return
+
+    # Console fallback (for dev or if configured providers fail)
+    print("\n" + "=" * 60)
+    print(f" [EMAIL]  {subject.upper()} (dev console fallback)")
+    print(f"    To: {to_email}")
+    print(f"    URL: {fallback_url}")
+    print("=" * 60 + "\n")
+
+
 # ── Email Sending ──────────────────────────────────────────────────────────────
 
 def send_password_reset_email(to_email: str, reset_token: str) -> None:
@@ -204,59 +286,7 @@ def send_password_reset_email(to_email: str, reset_token: str) -> None:
     </body>
     </html>
     """
-
-    # 1. Try Resend API (via RESEND_API_KEY or re_ key in SMTP_PASSWORD)
-    resend_key = _get_resend_api_key()
-    if resend_key:
-        try:
-            from_email = _get_resend_from_email()
-
-            with httpx.Client(timeout=10.0) as client:
-                response = client.post(
-                    "https://api.resend.com/emails",
-                    headers={
-                        "Authorization": f"Bearer {resend_key}",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "from": from_email,
-                        "to": [to_email],
-                        "subject": "FinTrack — Password Reset",
-                        "html": html_body,
-                    },
-                )
-                if response.status_code < 400:
-                    print(f"[INFO] Resend password reset email sent to {to_email}: {response.text}")
-                    return
-                else:
-                    print(f"[ERROR] Resend API rejected password reset to {to_email} ({response.status_code}): {response.text}")
-        except Exception as exc:
-            print(f"[WARNING] Failed to send via Resend: {exc}")
-
-    # 2. Try SMTP fallback
-    if settings.SMTP_HOST:
-        try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = "FinTrack — Password Reset"
-            msg["From"] = settings.SMTP_FROM
-            msg["To"] = to_email
-            msg.attach(MIMEText(html_body, "html"))
-
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
-                server.starttls()
-                if settings.SMTP_USER:
-                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
-            return
-        except Exception as exc:
-            print(f"[WARNING] Failed to send via SMTP: {exc}")
-
-    # 3. Console fallback
-    print("\n" + "=" * 60)
-    print(" [EMAIL]  PASSWORD RESET LINK (dev console fallback)")
-    print(f"    To: {to_email}")
-    print(f"    URL: {reset_url}")
-    print("=" * 60 + "\n")
+    _dispatch_email(to_email=to_email, subject="FinTrack — Password Reset", html_body=html_body, fallback_url=reset_url)
 
 
 def send_verification_email(to_email: str, verify_token: str) -> None:
@@ -295,56 +325,4 @@ def send_verification_email(to_email: str, verify_token: str) -> None:
     </body>
     </html>
     """
-
-    # 1. Try Resend API (via RESEND_API_KEY or re_ key in SMTP_PASSWORD)
-    resend_key = _get_resend_api_key()
-    if resend_key:
-        try:
-            from_email = _get_resend_from_email()
-
-            with httpx.Client(timeout=10.0) as client:
-                response = client.post(
-                    "https://api.resend.com/emails",
-                    headers={
-                        "Authorization": f"Bearer {resend_key}",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "from": from_email,
-                        "to": [to_email],
-                        "subject": "FinTrack — Verify Your Email",
-                        "html": html_body,
-                    },
-                )
-                if response.status_code < 400:
-                    print(f"[INFO] Resend verification email sent to {to_email}: {response.text}")
-                    return
-                else:
-                    print(f"[ERROR] Resend API rejected verification to {to_email} ({response.status_code}): {response.text}")
-        except Exception as exc:
-            print(f"[WARNING] Failed to send verification via Resend: {exc}")
-
-    # 2. Try SMTP fallback
-    if settings.SMTP_HOST:
-        try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = "FinTrack — Verify Your Email"
-            msg["From"] = settings.SMTP_FROM
-            msg["To"] = to_email
-            msg.attach(MIMEText(html_body, "html"))
-
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
-                server.starttls()
-                if settings.SMTP_USER:
-                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
-            return
-        except Exception as exc:
-            print(f"[WARNING] Failed to send verification via SMTP: {exc}")
-
-    # 3. Console fallback
-    print("\n" + "=" * 60)
-    print(" [EMAIL]  EMAIL VERIFICATION LINK (dev console fallback)")
-    print(f"    To: {to_email}")
-    print(f"    URL: {verify_url}")
-    print("=" * 60 + "\n")
+    _dispatch_email(to_email=to_email, subject="FinTrack — Verify Your Email", html_body=html_body, fallback_url=verify_url)

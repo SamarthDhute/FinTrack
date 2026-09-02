@@ -55,7 +55,8 @@ class Settings(BaseSettings):
             url = str(v).strip()
         return url.rstrip("/")
 
-    # ── SMTP (optional — console fallback when SMTP_HOST is empty) ─────────
+    # ── Email Settings (Provider: "auto", "smtp", "resend", "console") ───
+    EMAIL_PROVIDER: str = "auto"
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
