@@ -6,6 +6,10 @@ from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.core.db import Base, get_db
+from app.controllers.auth_controller import limiter
+
+# Disable rate limiter for automated tests
+limiter.enabled = False
 
 # Use in-memory SQLite for fast, isolated test execution
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
