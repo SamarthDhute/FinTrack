@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
-import { Mail, Lock, User, ArrowRight, AlertCircle, Sparkles } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import '../styles/auth.css';
 
 export default function AuthPage({ onForgotPasswordClick }) {
@@ -11,11 +11,13 @@ export default function AuthPage({ onForgotPasswordClick }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setIsLoading(true);
 
     try {
@@ -23,6 +25,9 @@ export default function AuthPage({ onForgotPasswordClick }) {
         await login(email, password);
       } else {
         await register(displayName, email, password);
+        setSuccess('Account created successfully! Please sign in with your email and password.');
+        setTab('login');
+        setPassword('');
       }
     } catch (err) {
       setError(err.message || 'Authentication failed. Please try again.');
@@ -55,6 +60,7 @@ export default function AuthPage({ onForgotPasswordClick }) {
             onClick={() => {
               setTab('login');
               setError('');
+              setSuccess('');
             }}
           >
             Sign In
@@ -65,11 +71,19 @@ export default function AuthPage({ onForgotPasswordClick }) {
             onClick={() => {
               setTab('register');
               setError('');
+              setSuccess('');
             }}
           >
             Register
           </button>
         </div>
+
+        {success && (
+          <div className="auth-success" style={{ marginBottom: '1.25rem' }}>
+            <CheckCircle2 size={16} />
+            <span>{success}</span>
+          </div>
+        )}
 
         {error && (
           <div className="auth-error" style={{ marginBottom: '1.25rem' }}>

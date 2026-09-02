@@ -69,26 +69,24 @@ def _clear_auth_cookies(response: Response) -> None:
 
 @router.post(
     "/register",
-    response_model=TokenResponse,
+    response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user account",
 )
 def register(
     request: Request,
-    response: Response,
     data: RegisterRequest,
     db: Session = Depends(get_db),
 ):
     device_hint = request.headers.get("User-Agent", "")[:100]
-    token_resp, raw_rt, _ = AuthService.register(
+    user = AuthService.register(
         db=db,
         email=data.email,
         password=data.password,
         display_name=data.display_name,
         device_hint=device_hint,
     )
-    _set_auth_cookies(response, raw_rt, token_resp.csrf_token)
-    return token_resp
+    return user
 
 
 # ── Login ──────────────────────────────────────────────────────────────────────

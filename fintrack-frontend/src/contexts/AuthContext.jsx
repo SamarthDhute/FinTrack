@@ -58,7 +58,6 @@ export function AuthProvider({ children }) {
 
   const register = async (display_name, email, password) => {
     const data = await api.auth.register({ display_name, email, password });
-    await handleAuthSuccess(data.access_token);
     return data;
   };
 

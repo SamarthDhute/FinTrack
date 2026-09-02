@@ -59,7 +59,7 @@ class AuthService:
         password: str,
         display_name: Optional[str] = None,
         device_hint: Optional[str] = None,
-    ) -> Tuple[TokenResponse, str, User]:
+    ) -> User:
         # 1. Check if email already exists
         existing = UserRepository.get_by_email(db, email)
         if existing:
@@ -83,9 +83,7 @@ class AuthService:
         db.commit()
         db.refresh(user)
 
-        # 4. Issue tokens
-        token_resp, raw_rt = AuthService._issue_tokens(db, user, device_hint=device_hint)
-        return token_resp, raw_rt, user
+        return user
 
     @staticmethod
     def login(

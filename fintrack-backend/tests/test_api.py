@@ -21,9 +21,9 @@ def test_auth_registration_and_login(client):
     )
     assert reg_res.status_code == 201
     data = reg_res.json()
-    assert "access_token" in data
-    assert "csrf_token" in data
-    assert "refresh_token" in reg_res.cookies
+    assert "id" in data
+    assert data["email"] == "test@example.com"
+    assert "access_token" not in data
 
     # 2. Duplicate registration fails
     dup_res = client.post(
@@ -63,8 +63,15 @@ def test_token_refresh_and_logout(client):
         "/api/v1/auth/register",
         json={"email": "refresh_test@example.com", "password": "Password123!"},
     )
-    csrf_token = reg_res.json()["csrf_token"]
-    raw_rt = reg_res.cookies.get("refresh_token")
+    assert reg_res.status_code == 201
+
+    login_res = client.post(
+        "/api/v1/auth/login",
+        json={"email": "refresh_test@example.com", "password": "Password123!"},
+    )
+    assert login_res.status_code == 200
+    csrf_token = login_res.json()["csrf_token"]
+    raw_rt = login_res.cookies.get("refresh_token")
 
     # 1. Refresh token with CSRF header
     refresh_res = client.post(
@@ -146,20 +153,28 @@ def test_password_management_flow(client):
 
 
 def test_user_data_isolation(client):
-    # Register User A
-    user_a = client.post(
+    # Register and login User A
+    client.post(
         "/api/v1/auth/register",
         json={"email": "usera@example.com", "password": "Password123!"},
+    )
+    login_a = client.post(
+        "/api/v1/auth/login",
+        json={"email": "usera@example.com", "password": "Password123!"},
     ).json()
-    token_a = user_a["access_token"]
+    token_a = login_a["access_token"]
     headers_a = {"Authorization": f"Bearer {token_a}"}
 
-    # Register User B
-    user_b = client.post(
+    # Register and login User B
+    client.post(
         "/api/v1/auth/register",
         json={"email": "userb@example.com", "password": "Password123!"},
+    )
+    login_b = client.post(
+        "/api/v1/auth/login",
+        json={"email": "userb@example.com", "password": "Password123!"},
     ).json()
-    token_b = user_b["access_token"]
+    token_b = login_b["access_token"]
     headers_b = {"Authorization": f"Bearer {token_b}"}
 
     # 1. User A creates custom category "A Private Category"
@@ -211,12 +226,16 @@ def test_user_data_isolation(client):
 
 
 def test_authenticated_expense_and_budget_crud(client):
-    # 1. Register User
-    reg_res = client.post(
+    # 1. Register User & Login
+    client.post(
         "/api/v1/auth/register",
         json={"email": "crud_user@example.com", "password": "Password123!"},
     )
-    token = reg_res.json()["access_token"]
+    login_res = client.post(
+        "/api/v1/auth/login",
+        json={"email": "crud_user@example.com", "password": "Password123!"},
+    )
+    token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
     # 2. Check 10 default categories are seeded
