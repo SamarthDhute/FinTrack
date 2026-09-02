@@ -124,11 +124,27 @@ const AppShell = () => {
   const [resetToken, setResetToken] = useState(null);
 
   useEffect(() => {
-    // Check if URL has ?token= for reset password
+    // 1. Check window.location.search (?token=...)
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
+    let token = urlParams.get('token');
+
+    // 2. Check window.location.hash (#token=... or #reset-password?token=... or #/reset-password?token=...)
+    if (!token && window.location.hash) {
+      const hash = window.location.hash.replace(/^#\/?/, '');
+      const queryPart = hash.includes('?') ? hash.split('?')[1] : (hash.includes('=') ? hash : '');
+      if (queryPart) {
+        const hashParams = new URLSearchParams(queryPart);
+        token = hashParams.get('token');
+      }
+    }
+
     if (token) {
       setResetToken(token);
+      setAuthView('reset-password');
+    } else if (
+      window.location.pathname.includes('reset-password') ||
+      window.location.hash.includes('reset-password')
+    ) {
       setAuthView('reset-password');
     }
   }, []);
@@ -144,7 +160,7 @@ const AppShell = () => {
     );
   }
 
-  if (authView === 'reset-password' && resetToken) {
+  if (authView === 'reset-password') {
     return (
       <ResetPasswordPage
         token={resetToken}
@@ -158,7 +174,12 @@ const AppShell = () => {
   }
 
   if (authView === 'forgot-password') {
-    return <ForgotPasswordPage onBackToLogin={() => setAuthView('auth')} />;
+    return (
+      <ForgotPasswordPage
+        onBackToLogin={() => setAuthView('auth')}
+        onGoToReset={() => setAuthView('reset-password')}
+      />
+    );
   }
 
   if (!isAuthenticated) {

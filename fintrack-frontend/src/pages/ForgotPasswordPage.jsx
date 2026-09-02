@@ -3,7 +3,7 @@ import { api } from '../api/client';
 import { Mail, ArrowLeft, Send, CheckCircle2, AlertCircle } from 'lucide-react';
 import '../styles/auth.css';
 
-export default function ForgotPasswordPage({ onBackToLogin }) {
+export default function ForgotPasswordPage({ onBackToLogin, onGoToReset }) {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -58,9 +58,24 @@ export default function ForgotPasswordPage({ onBackToLogin }) {
             </div>
             <h3 style={{ color: '#f8fafc', fontSize: '1.125rem', marginBottom: '0.5rem' }}>Check your email</h3>
             <p style={{ color: '#94a3b8', fontSize: '0.875rem', lineHeight: '1.5', marginBottom: '1.5rem' }}>
-              If an account exists for <strong style={{ color: '#e2e8f0' }}>{email}</strong>, you will receive a reset link shortly. In development, check your backend server console.
+              If an account exists for <strong style={{ color: '#e2e8f0' }}>{email}</strong>, you will receive a reset link shortly.
             </p>
-            <button type="button" className="auth-submit-btn" onClick={onBackToLogin}>
+            {onGoToReset && (
+              <button
+                type="button"
+                className="auth-submit-btn"
+                style={{ marginBottom: '0.75rem' }}
+                onClick={onGoToReset}
+              >
+                Enter Reset Token Manually
+              </button>
+            )}
+            <button
+              type="button"
+              className="auth-submit-btn"
+              style={{ background: 'rgba(255,255,255,0.06)' }}
+              onClick={onBackToLogin}
+            >
               Return to Sign In
             </button>
           </div>

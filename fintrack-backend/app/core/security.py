@@ -128,14 +128,37 @@ def send_password_reset_email(to_email: str, reset_token: str) -> None:
     """
     Send a password reset email using Resend, SMTP, or console fallback.
     """
-    reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
+    frontend_base = settings.FRONTEND_URL.rstrip("/") if settings.FRONTEND_URL else "http://localhost:3000"
+    reset_url = f"{frontend_base}/?token={reset_token}#reset-password"
     html_body = f"""
-    <html><body>
-      <h2>Reset your FinTrack password</h2>
-      <p>Click the link below to reset your password. This link expires in 1 hour.</p>
-      <p><a href="{reset_url}">Reset Password</a></p>
-      <p>If you didn't request this, ignore this email — your password won't change.</p>
-    </body></html>
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 24px; margin: 0;">
+      <div style="max-width: 520px; margin: 0 auto; background-color: #1e293b; border-radius: 12px; padding: 32px; border: 1px solid #334155;">
+        <h2 style="color: #f8fafc; margin-top: 0;">Reset Your Password</h2>
+        <p style="color: #94a3b8; font-size: 15px; line-height: 1.5;">
+          We received a request to reset the password for your FinTrack account (<strong>{to_email}</strong>).
+        </p>
+        <p style="color: #94a3b8; font-size: 15px; line-height: 1.5;">
+          Click the button below to choose a new password. This link is valid for <strong>1 hour</strong>.
+        </p>
+        <div style="text-align: center; margin: 28px 0;">
+          <a href="{reset_url}" style="background-color: #6366f1; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; display: inline-block;">Reset Password</a>
+        </div>
+        <p style="color: #94a3b8; font-size: 13px; line-height: 1.5;">
+          If the button doesn't work, copy and paste this link into your browser:
+        </p>
+        <p style="word-break: break-all; font-size: 13px;">
+          <a href="{reset_url}" style="color: #818cf8;">{reset_url}</a>
+        </p>
+        <hr style="border: none; border-top: 1px solid #334155; margin: 24px 0;" />
+        <p style="color: #64748b; font-size: 12px; margin-bottom: 0;">
+          If you didn't request this email, you can safely ignore it. Your password will not change until you access the link above.
+        </p>
+      </div>
+    </body>
+    </html>
     """
 
     # 1. Try Resend API

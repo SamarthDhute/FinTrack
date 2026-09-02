@@ -1,18 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { Lock, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Lock, ArrowLeft, CheckCircle2, AlertCircle, Key } from 'lucide-react';
 import '../styles/auth.css';
 
-export default function ResetPasswordPage({ token, onBackToLogin }) {
+export default function ResetPasswordPage({ token: initialToken, onBackToLogin }) {
+  const [token, setToken] = useState(initialToken || '');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    if (initialToken) {
+      setToken(initialToken);
+    }
+  }, [initialToken]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    const trimmedToken = token ? token.trim() : '';
+    if (!trimmedToken) {
+      setError('Password reset token is required. Please check your email or paste the reset token.');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
 
     if (newPassword !== confirmPassword) {
       setError('Passwords do not match.');
@@ -21,10 +39,10 @@ export default function ResetPasswordPage({ token, onBackToLogin }) {
 
     setIsLoading(true);
     try {
-      await api.auth.resetPassword({ token, new_password: newPassword });
+      await api.auth.resetPassword({ token: trimmedToken, new_password: newPassword });
       setIsSuccess(true);
     } catch (err) {
-      setError(err.message || 'Password reset failed. The link may have expired.');
+      setError(err.message || 'Password reset failed. The link may have expired or is invalid.');
     } finally {
       setIsLoading(false);
     }
@@ -60,6 +78,23 @@ export default function ResetPasswordPage({ token, onBackToLogin }) {
           </div>
         ) : (
           <form className="auth-form" onSubmit={handleSubmit}>
+            {!initialToken && (
+              <div className="auth-field">
+                <label className="auth-label">Reset Token</label>
+                <div className="auth-input-wrapper">
+                  <Key size={16} className="auth-input-icon" />
+                  <input
+                    type="text"
+                    required
+                    className="auth-input"
+                    placeholder="Paste reset token from email"
+                    value={token}
+                    onChange={(e) => setToken(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="auth-field">
               <label className="auth-label">New Password</label>
               <div className="auth-input-wrapper">
@@ -95,6 +130,18 @@ export default function ResetPasswordPage({ token, onBackToLogin }) {
             <button type="submit" className="auth-submit-btn" disabled={isLoading}>
               {isLoading ? 'Updating...' : 'Update Password'}
             </button>
+
+            <div style={{ marginTop: '1.25rem', textAlign: 'center' }}>
+              <button
+                type="button"
+                className="auth-forgot-link"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                onClick={onBackToLogin}
+              >
+                <ArrowLeft size={14} />
+                Back to Sign In
+              </button>
+            </div>
           </form>
         )}
       </div>
