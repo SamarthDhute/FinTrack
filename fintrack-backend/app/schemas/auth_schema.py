@@ -54,3 +54,13 @@ class ResetPasswordRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str = Field(..., description="Current password for verification")
     new_password: str = Field(..., min_length=8, max_length=128, description="New password (min 8 characters)")
+
+
+# ── Email Verification ────────────────────────────────────────────────────────
+
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(..., description="Signed email verification token from the link")
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr = Field(..., description="Email address to resend the verification link to")

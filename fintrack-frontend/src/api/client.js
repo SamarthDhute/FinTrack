@@ -132,6 +132,8 @@ export const api = {
     forgotPassword: (data) => request('/auth/forgot-password', { method: 'POST', body: JSON.stringify(data) }),
     resetPassword: (data) => request('/auth/reset-password', { method: 'POST', body: JSON.stringify(data) }),
     changePassword: (data) => request('/auth/change-password', { method: 'POST', body: JSON.stringify(data) }),
+    verifyEmail: (data) => request('/auth/verify-email', { method: 'POST', body: JSON.stringify(data) }),
+    resendVerification: (data) => request('/auth/resend-verification', { method: 'POST', body: JSON.stringify(data) }),
     googleAuthorizeUrl: `${API_PREFIX}/auth/google/authorize`,
   },
 

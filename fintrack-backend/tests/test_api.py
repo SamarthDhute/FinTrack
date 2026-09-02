@@ -1,6 +1,18 @@
 from datetime import date
 from decimal import Decimal
 
+from app.core.security import generate_email_verification_token
+
+
+def _register_and_verify(client, email, password, display_name=None):
+    res = client.post(
+        "/api/v1/auth/register",
+        json={"email": email, "password": password, "display_name": display_name},
+    )
+    token = generate_email_verification_token(email)
+    client.post("/api/v1/auth/verify-email", json={"token": token})
+    return res
+
 
 def test_health_check(client):
     response = client.get("/health")
@@ -35,7 +47,23 @@ def test_auth_registration_and_login(client):
     )
     assert dup_res.status_code == 409
 
-    # 3. Login with correct credentials
+    # 3. Login before verification is blocked (403 Forbidden)
+    unverified_login = client.post(
+        "/api/v1/auth/login",
+        json={"email": "test@example.com", "password": "Password123!"},
+    )
+    assert unverified_login.status_code == 403
+    assert "verify your email" in unverified_login.json()["detail"].lower()
+
+    # 4. Verify email with valid token
+    verify_token = generate_email_verification_token("test@example.com")
+    verify_res = client.post(
+        "/api/v1/auth/verify-email",
+        json={"token": verify_token},
+    )
+    assert verify_res.status_code == 200
+
+    # 5. Login with correct credentials succeeds after verification
     login_res = client.post(
         "/api/v1/auth/login",
         json={"email": "test@example.com", "password": "Password123!"},
@@ -58,11 +86,8 @@ def test_auth_registration_and_login(client):
 
 
 def test_token_refresh_and_logout(client):
-    # Register user
-    reg_res = client.post(
-        "/api/v1/auth/register",
-        json={"email": "refresh_test@example.com", "password": "Password123!"},
-    )
+    # Register and verify user
+    reg_res = _register_and_verify(client, email="refresh_test@example.com", password="Password123!")
     assert reg_res.status_code == 201
 
     login_res = client.post(
@@ -110,11 +135,8 @@ def test_token_refresh_and_logout(client):
 
 
 def test_password_management_flow(client):
-    # Register user
-    client.post(
-        "/api/v1/auth/register",
-        json={"email": "pw_test@example.com", "password": "Password123!"},
-    )
+    # Register and verify user
+    _register_and_verify(client, email="pw_test@example.com", password="Password123!")
 
     # 1. Forgot password
     forgot_res = client.post(
@@ -153,11 +175,8 @@ def test_password_management_flow(client):
 
 
 def test_user_data_isolation(client):
-    # Register and login User A
-    client.post(
-        "/api/v1/auth/register",
-        json={"email": "usera@example.com", "password": "Password123!"},
-    )
+    # Register, verify, and login User A
+    _register_and_verify(client, email="usera@example.com", password="Password123!")
     login_a = client.post(
         "/api/v1/auth/login",
         json={"email": "usera@example.com", "password": "Password123!"},
@@ -165,11 +184,8 @@ def test_user_data_isolation(client):
     token_a = login_a["access_token"]
     headers_a = {"Authorization": f"Bearer {token_a}"}
 
-    # Register and login User B
-    client.post(
-        "/api/v1/auth/register",
-        json={"email": "userb@example.com", "password": "Password123!"},
-    )
+    # Register, verify, and login User B
+    _register_and_verify(client, email="userb@example.com", password="Password123!")
     login_b = client.post(
         "/api/v1/auth/login",
         json={"email": "userb@example.com", "password": "Password123!"},
@@ -226,11 +242,8 @@ def test_user_data_isolation(client):
 
 
 def test_authenticated_expense_and_budget_crud(client):
-    # 1. Register User & Login
-    client.post(
-        "/api/v1/auth/register",
-        json={"email": "crud_user@example.com", "password": "Password123!"},
-    )
+    # 1. Register User, Verify & Login
+    _register_and_verify(client, email="crud_user@example.com", password="Password123!")
     login_res = client.post(
         "/api/v1/auth/login",
         json={"email": "crud_user@example.com", "password": "Password123!"},

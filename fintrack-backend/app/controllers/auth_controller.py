@@ -16,9 +16,12 @@ from app.schemas.auth_schema import (
     LoginRequest,
     RegisterRequest,
     ResetPasswordRequest,
+    ResendVerificationRequest,
     TokenResponse,
     UserResponse,
+    VerifyEmailRequest,
 )
+from app.core.security import generate_email_verification_token, send_verification_email
 from app.services.auth_service import AuthService
 
 limiter = Limiter(key_func=get_remote_address)
@@ -76,6 +79,7 @@ def _clear_auth_cookies(response: Response) -> None:
 def register(
     request: Request,
     data: RegisterRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     device_hint = request.headers.get("User-Agent", "")[:100]
@@ -86,6 +90,9 @@ def register(
         display_name=data.display_name,
         device_hint=device_hint,
     )
+    # Send verification email in background
+    token = generate_email_verification_token(user.email)
+    background_tasks.add_task(send_verification_email, to_email=user.email, verify_token=token)
     return user
 
 
@@ -239,6 +246,37 @@ def change_password(
         new_password=data.new_password,
     )
     return {"message": "Password changed successfully."}
+
+
+# ── Email Verification ────────────────────────────────────────────────────────
+
+@router.post(
+    "/verify-email",
+    status_code=status.HTTP_200_OK,
+    summary="Verify user email address using a signed token",
+)
+def verify_email(
+    data: VerifyEmailRequest,
+    db: Session = Depends(get_db),
+):
+    AuthService.verify_email(db=db, token=data.token)
+    return {"message": "Email verified successfully! You can now log in."}
+
+
+@router.post(
+    "/resend-verification",
+    status_code=status.HTTP_200_OK,
+    summary="Resend email verification link",
+)
+@limiter.limit("3/minute")
+def resend_verification(
+    request: Request,
+    data: ResendVerificationRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    AuthService.resend_verification(db=db, email=data.email, background_tasks=background_tasks)
+    return {"message": "If an unverified account with that email exists, a verification link has been sent."}
 
 
 # ── Google OAuth 2.0 ───────────────────────────────────────────────────────────

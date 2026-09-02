@@ -66,6 +66,12 @@ class UserRepository:
         return user
 
     @staticmethod
+    def mark_verified(db: Session, user: User) -> User:
+        user.is_verified = True
+        db.flush()
+        return user
+
+    @staticmethod
     def seed_default_categories(db: Session, user_id: int) -> None:
         """
         Insert the 10 default starter categories for a newly registered user.

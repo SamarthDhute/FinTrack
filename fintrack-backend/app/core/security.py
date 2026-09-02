@@ -115,6 +115,30 @@ def verify_password_reset_token(token: str, max_age_seconds: int = 3600) -> str:
         raise ValueError("Invalid password reset link.")
 
 
+# ── Email Verification Token (itsdangerous) ───────────────────────────────────
+
+_verify_serializer = URLSafeTimedSerializer(settings.JWT_SECRET_KEY, salt="email-verify")
+
+
+def generate_email_verification_token(email: str) -> str:
+    """Return a signed, time-limited token encoding the user's email (24 h TTL)."""
+    return _verify_serializer.dumps(email)
+
+
+def verify_email_token(token: str, max_age_seconds: int = 86400) -> str:
+    """
+    Verify the email verification token and return the email it encodes.
+    Raises ValueError if the token is invalid or expired.
+    """
+    try:
+        email = _verify_serializer.loads(token, max_age=max_age_seconds)
+        return email
+    except SignatureExpired:
+        raise ValueError("Verification link has expired. Please request a new one.")
+    except BadSignature:
+        raise ValueError("Invalid verification link.")
+
+
 # ── CSRF Token ─────────────────────────────────────────────────────────────────
 
 def generate_csrf_token() -> str:
@@ -203,4 +227,86 @@ def send_password_reset_email(to_email: str, reset_token: str) -> None:
     print(" [EMAIL]  PASSWORD RESET LINK (dev console fallback)")
     print(f"    To: {to_email}")
     print(f"    URL: {reset_url}")
+    print("=" * 60 + "\n")
+
+
+def send_verification_email(to_email: str, verify_token: str) -> None:
+    """
+    Send an email verification link using Resend, SMTP, or console fallback.
+    """
+    frontend_base = settings.FRONTEND_URL.rstrip("/") if settings.FRONTEND_URL else "http://localhost:3000"
+    verify_url = f"{frontend_base}/?token={verify_token}#verify-email"
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 24px; margin: 0;">
+      <div style="max-width: 520px; margin: 0 auto; background-color: #1e293b; border-radius: 12px; padding: 32px; border: 1px solid #334155;">
+        <h2 style="color: #f8fafc; margin-top: 0;">Verify Your Email Address</h2>
+        <p style="color: #94a3b8; font-size: 15px; line-height: 1.5;">
+          Welcome to FinTrack! Please confirm your email address (<strong>{to_email}</strong>) to activate your account.
+        </p>
+        <p style="color: #94a3b8; font-size: 15px; line-height: 1.5;">
+          Click the button below to verify your email. This link is valid for <strong>24 hours</strong>.
+        </p>
+        <div style="text-align: center; margin: 28px 0;">
+          <a href="{verify_url}" style="background-color: #10b981; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; display: inline-block;">Verify Email</a>
+        </div>
+        <p style="color: #94a3b8; font-size: 13px; line-height: 1.5;">
+          If the button doesn't work, copy and paste this link into your browser:
+        </p>
+        <p style="word-break: break-all; font-size: 13px;">
+          <a href="{verify_url}" style="color: #34d399;">{verify_url}</a>
+        </p>
+        <hr style="border: none; border-top: 1px solid #334155; margin: 24px 0;" />
+        <p style="color: #64748b; font-size: 12px; margin-bottom: 0;">
+          If you did not create a FinTrack account, please ignore this email.
+        </p>
+      </div>
+    </body>
+    </html>
+    """
+
+    # 1. Try Resend API
+    if settings.RESEND_API_KEY:
+        try:
+            with httpx.Client() as client:
+                response = client.post(
+                    "https://api.resend.com/emails",
+                    headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+                    json={
+                        "from": settings.SMTP_FROM,
+                        "to": [to_email],
+                        "subject": "FinTrack — Verify Your Email",
+                        "html": html_body,
+                    },
+                )
+                response.raise_for_status()
+            return
+        except Exception as exc:
+            print(f"[WARNING] Failed to send verification via Resend: {exc}")
+
+    # 2. Try SMTP fallback
+    if settings.SMTP_HOST:
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = "FinTrack — Verify Your Email"
+            msg["From"] = settings.SMTP_FROM
+            msg["To"] = to_email
+            msg.attach(MIMEText(html_body, "html"))
+
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
+                server.starttls()
+                if settings.SMTP_USER:
+                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+            return
+        except Exception as exc:
+            print(f"[WARNING] Failed to send verification via SMTP: {exc}")
+
+    # 3. Console fallback
+    print("\n" + "=" * 60)
+    print(" [EMAIL]  EMAIL VERIFICATION LINK (dev console fallback)")
+    print(f"    To: {to_email}")
+    print(f"    URL: {verify_url}")
     print("=" * 60 + "\n")

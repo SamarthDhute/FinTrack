@@ -4,7 +4,8 @@ import { api } from '../api/client';
 import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import '../styles/auth.css';
 
-export default function AuthPage({ onForgotPasswordClick }) {
+export default function AuthPage({ onForgotPasswordClick, onForgotPassword, onGoToVerify }) {
+  const handleForgotPassword = onForgotPassword || onForgotPasswordClick;
   const { login, register } = useAuth();
   const [tab, setTab] = useState('login'); // 'login' | 'register'
   const [displayName, setDisplayName] = useState('');
@@ -13,11 +14,16 @@ export default function AuthPage({ onForgotPasswordClick }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isUnverified, setIsUnverified] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendStatus, setResendStatus] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setIsUnverified(false);
+    setResendStatus('');
     setIsLoading(true);
 
     try {
@@ -25,14 +31,34 @@ export default function AuthPage({ onForgotPasswordClick }) {
         await login(email, password);
       } else {
         await register(displayName, email, password);
-        setSuccess('Account created successfully! Please sign in with your email and password.');
+        setSuccess(
+          'Account created! A verification link has been sent to your email. Please check your inbox and verify your email before signing in.'
+        );
         setTab('login');
         setPassword('');
       }
     } catch (err) {
-      setError(err.message || 'Authentication failed. Please try again.');
+      const errMsg = err.message || 'Authentication failed. Please try again.';
+      setError(errMsg);
+      if (errMsg.toLowerCase().includes('verify your email')) {
+        setIsUnverified(true);
+      }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email) return;
+    setResending(true);
+    setResendStatus('');
+    try {
+      await api.auth.resendVerification({ email: email.trim() });
+      setResendStatus('Verification email sent! Check your inbox.');
+    } catch (err) {
+      setResendStatus(err.message || 'Failed to resend verification link.');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -92,6 +118,62 @@ export default function AuthPage({ onForgotPasswordClick }) {
           </div>
         )}
 
+        {isUnverified && (
+          <div
+            style={{
+              background: 'rgba(99, 102, 241, 0.08)',
+              border: '1px solid rgba(99, 102, 241, 0.2)',
+              borderRadius: 8,
+              padding: '0.875rem 1rem',
+              marginBottom: '1.25rem',
+              fontSize: '0.875rem',
+            }}
+          >
+            {resendStatus ? (
+              <p style={{ color: '#818cf8', margin: 0 }}>{resendStatus}</p>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{ color: '#cbd5e1' }}>Didn't receive verification email?</span>
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#818cf8',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    padding: 0,
+                  }}
+                >
+                  {resending ? 'Sending...' : 'Resend Link'}
+                </button>
+              </div>
+            )}
+            {onGoToVerify && (
+              <div style={{ marginTop: '0.5rem', textAlign: 'right' }}>
+                <button
+                  type="button"
+                  onClick={onGoToVerify}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#94a3b8',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    padding: 0,
+                  }}
+                >
+                  Enter token manually
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         <form className="auth-form" onSubmit={handleSubmit}>
           {tab === 'register' && (
             <div className="auth-field">
@@ -131,7 +213,7 @@ export default function AuthPage({ onForgotPasswordClick }) {
                 <button
                   type="button"
                   className="auth-forgot-link"
-                  onClick={onForgotPasswordClick}
+                  onClick={handleForgotPassword}
                 >
                   Forgot password?
                 </button>

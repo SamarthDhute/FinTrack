@@ -9,6 +9,7 @@ import { CategoriesPage } from './pages/CategoriesPage';
 import AuthPage from './pages/AuthPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 import { ExpenseModal } from './components/ExpenseModal';
 import { api } from './api/client';
 import { InstallPrompt } from './components/InstallPrompt';
@@ -120,31 +121,36 @@ const MainLayout = () => {
 
 const AppShell = () => {
   const { isAuthenticated, isLoading } = useAuth();
-  const [authView, setAuthView] = useState('auth'); // 'auth' | 'forgot-password' | 'reset-password'
+  const [authView, setAuthView] = useState('auth'); // 'auth' | 'forgot-password' | 'reset-password' | 'verify-email'
   const [resetToken, setResetToken] = useState(null);
+  const [verifyToken, setVerifyToken] = useState(null);
 
   useEffect(() => {
     // 1. Check window.location.search (?token=...)
     const urlParams = new URLSearchParams(window.location.search);
     let token = urlParams.get('token');
 
-    // 2. Check window.location.hash (#token=... or #reset-password?token=... or #/reset-password?token=...)
-    if (!token && window.location.hash) {
-      const hash = window.location.hash.replace(/^#\/?/, '');
-      const queryPart = hash.includes('?') ? hash.split('?')[1] : (hash.includes('=') ? hash : '');
+    // 2. Check window.location.hash
+    const hash = window.location.hash || '';
+    const path = window.location.pathname || '';
+
+    if (!token && hash) {
+      const cleanHash = hash.replace(/^#\/?/, '');
+      const queryPart = cleanHash.includes('?') ? cleanHash.split('?')[1] : (cleanHash.includes('=') ? cleanHash : '');
       if (queryPart) {
         const hashParams = new URLSearchParams(queryPart);
         token = hashParams.get('token');
       }
     }
 
-    if (token) {
-      setResetToken(token);
+    if (hash.includes('verify-email') || path.includes('verify-email')) {
+      if (token) setVerifyToken(token);
+      setAuthView('verify-email');
+    } else if (hash.includes('reset-password') || path.includes('reset-password')) {
+      if (token) setResetToken(token);
       setAuthView('reset-password');
-    } else if (
-      window.location.pathname.includes('reset-password') ||
-      window.location.hash.includes('reset-password')
-    ) {
+    } else if (token) {
+      setResetToken(token);
       setAuthView('reset-password');
     }
   }, []);
@@ -173,6 +179,19 @@ const AppShell = () => {
     );
   }
 
+  if (authView === 'verify-email') {
+    return (
+      <VerifyEmailPage
+        token={verifyToken}
+        onBackToLogin={() => {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setVerifyToken(null);
+          setAuthView('auth');
+        }}
+      />
+    );
+  }
+
   if (authView === 'forgot-password') {
     return (
       <ForgotPasswordPage
@@ -183,7 +202,12 @@ const AppShell = () => {
   }
 
   if (!isAuthenticated) {
-    return <AuthPage onForgotPasswordClick={() => setAuthView('forgot-password')} />;
+    return (
+      <AuthPage
+        onForgotPassword={() => setAuthView('forgot-password')}
+        onGoToVerify={() => setAuthView('verify-email')}
+      />
+    );
   }
 
   return <MainLayout />;

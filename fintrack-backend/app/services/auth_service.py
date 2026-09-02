@@ -13,6 +13,9 @@ from app.core.security import (
     generate_password_reset_token,
     verify_password_reset_token,
     send_password_reset_email,
+    generate_email_verification_token,
+    verify_email_token,
+    send_verification_email,
 )
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
@@ -116,6 +119,12 @@ class AuthService:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="This account has been deactivated.",
+            )
+
+        if not user.is_verified:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Please verify your email address before logging in. Check your inbox for the verification link.",
             )
 
         token_resp, raw_rt = AuthService._issue_tokens(db, user, device_hint=device_hint)
@@ -237,6 +246,45 @@ class AuthService:
         hashed = hash_password(new_password)
         UserRepository.update_password(db, user, hashed)
         db.commit()
+
+    @staticmethod
+    def verify_email(db: Session, token: str) -> User:
+        try:
+            email = verify_email_token(token)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e),
+            )
+
+        user = UserRepository.get_by_email(db, email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User not found.",
+            )
+
+        if not user.is_verified:
+            UserRepository.mark_verified(db, user)
+            db.commit()
+            db.refresh(user)
+
+        return user
+
+    @staticmethod
+    def resend_verification(
+        db: Session, email: str, background_tasks: Optional[BackgroundTasks] = None
+    ) -> None:
+        user = UserRepository.get_by_email(db, email)
+        # Only send if user exists and is not yet verified
+        if user and not user.is_verified:
+            token = generate_email_verification_token(user.email)
+            if background_tasks:
+                background_tasks.add_task(
+                    send_verification_email, to_email=user.email, verify_token=token
+                )
+            else:
+                send_verification_email(to_email=user.email, verify_token=token)
 
     @staticmethod
     def handle_google_user(
