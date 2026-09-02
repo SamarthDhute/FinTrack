@@ -11,12 +11,7 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
 
     # ── CORS ───────────────────────────────────────────────────────────────
-    CORS_ORIGINS: Union[str, List[str]] = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-    ]
+    CORS_ORIGINS: Union[str, List[str]] = []
 
     @field_validator("CORS_ORIGINS", mode="after")
     @classmethod
@@ -40,10 +35,10 @@ class Settings(BaseSettings):
     # ── Google OAuth 2.0 ───────────────────────────────────────────────────
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
-    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
+    GOOGLE_REDIRECT_URI: str = ""
 
     # ── Frontend URL (for password-reset links in emails) ──────────────────
-    FRONTEND_URL: str = "http://localhost:3000"
+    FRONTEND_URL: str = ""
 
     @field_validator("FRONTEND_URL", mode="before")
     @classmethod
@@ -60,7 +55,8 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
-    SMTP_FROM: str = "noreply@fintrack.local"
+    SMTP_FROM: str = ""
+    RESEND_API_KEY: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

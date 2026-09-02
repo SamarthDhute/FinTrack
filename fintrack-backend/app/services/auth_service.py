@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -182,12 +182,19 @@ class AuthService:
         db.commit()
 
     @staticmethod
-    def forgot_password(db: Session, email: str) -> None:
+    def forgot_password(
+        db: Session, email: str, background_tasks: Optional[BackgroundTasks] = None
+    ) -> None:
         user = UserRepository.get_by_email(db, email)
         # Always return success to prevent email enumeration
         if user:
             token = generate_password_reset_token(user.email)
-            send_password_reset_email(to_email=user.email, reset_token=token)
+            if background_tasks:
+                background_tasks.add_task(
+                    send_password_reset_email, to_email=user.email, reset_token=token
+                )
+            else:
+                send_password_reset_email(to_email=user.email, reset_token=token)
 
     @staticmethod
     def reset_password(db: Session, token: str, new_password: str) -> None:

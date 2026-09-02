@@ -1,6 +1,6 @@
 from typing import Optional
 from authlib.integrations.starlette_client import OAuth
-from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Header, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -204,9 +204,10 @@ def get_current_user_profile(
 def forgot_password(
     request: Request,
     data: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    AuthService.forgot_password(db=db, email=data.email)
+    AuthService.forgot_password(db=db, email=data.email, background_tasks=background_tasks)
     return {"message": "If an account with that email exists, a password reset link has been sent."}
 
 

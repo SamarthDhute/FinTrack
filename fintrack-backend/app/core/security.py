@@ -11,6 +11,8 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from jose import jwt, JWTError
 
 from app.core.config import settings
+import requests
+
 
 # ── Password Hashing (Direct native bcrypt) ───────────────────────────────────
 
@@ -123,40 +125,57 @@ def generate_csrf_token() -> str:
 
 def send_password_reset_email(to_email: str, reset_token: str) -> None:
     """
-    Send a password reset email.
-    Falls back to printing the link to the console when SMTP is not configured
-    (safe for local development — never in production).
+    Send a password reset email using Resend, SMTP, or console fallback.
     """
     reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
+    html_body = f"""
+    <html><body>
+      <h2>Reset your FinTrack password</h2>
+      <p>Click the link below to reset your password. This link expires in 1 hour.</p>
+      <p><a href="{reset_url}">Reset Password</a></p>
+      <p>If you didn't request this, ignore this email — your password won't change.</p>
+    </body></html>
+    """
 
-    if not settings.SMTP_HOST:
-        print("\n" + "=" * 60)
-        print(" [EMAIL]  PASSWORD RESET LINK (dev console fallback)")
-        print(f"    To: {to_email}")
-        print(f"    URL: {reset_url}")
-        print("=" * 60 + "\n")
-        return
+    # 1. Try Resend API
+    if settings.RESEND_API_KEY:
+        try:
+            response = requests.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+                json={
+                    "from": settings.SMTP_FROM,
+                    "to": [to_email],
+                    "subject": "FinTrack — Password Reset",
+                    "html": html_body,
+                },
+            )
+            response.raise_for_status()
+            return
+        except Exception as exc:
+            print(f"[WARNING] Failed to send via Resend: {exc}")
 
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = "FinTrack — Password Reset"
-        msg["From"] = settings.SMTP_FROM
-        msg["To"] = to_email
+    # 2. Try SMTP fallback
+    if settings.SMTP_HOST:
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = "FinTrack — Password Reset"
+            msg["From"] = settings.SMTP_FROM
+            msg["To"] = to_email
+            msg.attach(MIMEText(html_body, "html"))
 
-        html_body = f"""
-        <html><body>
-          <h2>Reset your FinTrack password</h2>
-          <p>Click the link below to reset your password. This link expires in 1 hour.</p>
-          <p><a href="{reset_url}">Reset Password</a></p>
-          <p>If you didn't request this, ignore this email — your password won't change.</p>
-        </body></html>
-        """
-        msg.attach(MIMEText(html_body, "html"))
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
+                server.starttls()
+                if settings.SMTP_USER:
+                    server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+            return
+        except Exception as exc:
+            print(f"[WARNING] Failed to send via SMTP: {exc}")
 
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-            server.starttls()
-            if settings.SMTP_USER:
-                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-            server.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
-    except Exception as exc:
-        print(f"[WARNING] Failed to send password reset email to {to_email}: {exc}")
+    # 3. Console fallback
+    print("\n" + "=" * 60)
+    print(" [EMAIL]  PASSWORD RESET LINK (dev console fallback)")
+    print(f"    To: {to_email}")
+    print(f"    URL: {reset_url}")
+    print("=" * 60 + "\n")
