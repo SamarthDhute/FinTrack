@@ -241,8 +241,12 @@ def _dispatch_email(to_email: str, subject: str, html_body: str, fallback_url: s
             return False
 
     def _send_smtp() -> bool:
-        if not settings.SMTP_HOST:
-            return False
+        host = settings.SMTP_HOST
+        if not host:
+            if settings.SMTP_PASSWORD and settings.SMTP_PASSWORD.startswith("xsmtpsib-"):
+                host = "smtp-relay.brevo.com"
+            else:
+                return False
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = subject
@@ -251,19 +255,21 @@ def _dispatch_email(to_email: str, subject: str, html_body: str, fallback_url: s
             msg["To"] = to_email
             msg.attach(MIMEText(html_body, "html"))
 
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
+            with smtplib.SMTP(host, settings.SMTP_PORT, timeout=10) as server:
                 server.starttls()
                 if settings.SMTP_USER:
                     server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
                 server.sendmail(from_addr, to_email, msg.as_string())
-            print(f"[INFO] SMTP ({settings.SMTP_HOST}) email successfully sent to {to_email}")
+            print(f"[INFO] SMTP ({host}) email successfully sent to {to_email}")
             return True
         except Exception as exc:
-            print(f"[WARNING] Failed to send via SMTP: {exc}")
+            print(f"[WARNING] Failed to send via SMTP ({host}): {exc}")
             return False
 
     if provider == "brevo":
         if _send_brevo():
+            return
+        if _send_smtp():
             return
     elif provider == "resend":
         if _send_resend():
@@ -273,6 +279,8 @@ def _dispatch_email(to_email: str, subject: str, html_body: str, fallback_url: s
             return
     elif provider == "auto":
         if (settings.BREVO_API_KEY or (settings.SMTP_PASSWORD and settings.SMTP_PASSWORD.startswith("xkeysib-"))) and _send_brevo():
+            return
+        if (settings.SMTP_PASSWORD and settings.SMTP_PASSWORD.startswith("xsmtpsib-")) and _send_smtp():
             return
         if _get_resend_api_key() and _send_resend():
             return
