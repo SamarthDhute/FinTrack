@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense }) => {
+export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense, onOpenChangePassword }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
@@ -123,11 +123,13 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense }) => {
                   </div>
                 </div>
                 <div className="profile-dropdown-divider" />
-                <button className="profile-dropdown-item" onClick={() => { setProfileMenuOpen(false); }}>
-                  <Settings size={15} />
-                  <span>Settings</span>
-                </button>
-                <button className="profile-dropdown-item" onClick={() => { setProfileMenuOpen(false); }}>
+                <button
+                  className="profile-dropdown-item"
+                  onClick={() => {
+                    setProfileMenuOpen(false);
+                    if (onOpenChangePassword) onOpenChangePassword();
+                  }}
+                >
                   <Lock size={15} />
                   <span>Update Password</span>
                 </button>
@@ -184,15 +186,10 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense }) => {
           <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', marginTop: '0.25rem', paddingTop: '0.25rem' }}>
             <button
               className="nav-link-item"
-              onClick={() => setMobileMenuOpen(false)}
-              style={{ width: '100%', justifyContent: 'flex-start', padding: '0.75rem 1rem' }}
-            >
-              <Settings size={18} />
-              <span>Settings</span>
-            </button>
-            <button
-              className="nav-link-item"
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={() => {
+                setMobileMenuOpen(false);
+                if (onOpenChangePassword) onOpenChangePassword();
+              }}
               style={{ width: '100%', justifyContent: 'flex-start', padding: '0.75rem 1rem' }}
             >
               <Lock size={18} />

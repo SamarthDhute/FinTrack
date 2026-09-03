@@ -11,6 +11,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import { ExpenseModal } from './components/ExpenseModal';
+import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { api } from './api/client';
 import { InstallPrompt } from './components/InstallPrompt';
 import { OfflineBanner } from './components/OfflineBanner';
@@ -23,6 +24,7 @@ const MainLayout = () => {
 
   const [isQuickExpenseModalOpen, setIsQuickExpenseModalOpen] = useState(false);
   const [isSavingQuickExpense, setIsSavingQuickExpense] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const fetchGlobalMetadata = useCallback(async () => {
@@ -73,6 +75,7 @@ const MainLayout = () => {
         activeTab={activeTab}
         onSelectTab={(tab) => setActiveTab(tab)}
         onOpenAddExpense={() => setIsQuickExpenseModalOpen(true)}
+        onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
       />
       <main className="main-content">
         {activeTab === 'dashboard' && (
@@ -114,6 +117,10 @@ const MainLayout = () => {
         expense={null}
         isSaving={isSavingQuickExpense}
         onQuickAddCategory={handleQuickAddCategory}
+      />
+      <ChangePasswordModal
+        isOpen={isChangePasswordModalOpen}
+        onClose={() => setIsChangePasswordModalOpen(false)}
       />
     </div>
   );
