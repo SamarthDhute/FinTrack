@@ -51,6 +51,17 @@ export default function ResetPasswordPage({ token: initialToken, onBackToLogin }
   return (
     <div className="auth-container">
       <div className="auth-card">
+        <div style={{ marginBottom: '1.25rem' }}>
+          <button
+            type="button"
+            className="auth-back-btn"
+            onClick={onBackToLogin}
+          >
+            <ArrowLeft size={14} />
+            <span>Back to login</span>
+          </button>
+        </div>
+
         <div className="auth-header">
           <h1 className="auth-title">Create New Password</h1>
           <p className="auth-subtitle">Choose a secure password for your FinTrack account.</p>
@@ -65,11 +76,11 @@ export default function ResetPasswordPage({ token: initialToken, onBackToLogin }
 
         {isSuccess ? (
           <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-            <div style={{ color: '#10b981', display: 'inline-flex', marginBottom: '0.75rem' }}>
+            <div style={{ color: '#16A34A', display: 'inline-flex', marginBottom: '0.75rem' }}>
               <CheckCircle2 size={48} />
             </div>
-            <h3 style={{ color: '#f8fafc', fontSize: '1.125rem', marginBottom: '0.5rem' }}>Password Reset Complete</h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.875rem', lineHeight: '1.5', marginBottom: '1.5rem' }}>
+            <h3 style={{ color: '#111827', fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem' }}>Password Reset Complete</h3>
+            <p style={{ color: '#6B7280', fontSize: '0.875rem', lineHeight: '1.5', marginBottom: '1.5rem' }}>
               Your password has been changed successfully. You can now sign in with your new credentials.
             </p>
             <button type="button" className="auth-submit-btn" onClick={onBackToLogin}>

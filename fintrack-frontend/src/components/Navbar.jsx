@@ -12,7 +12,8 @@ import {
   Settings,
   Lock,
   ChevronDown,
-  User as UserIcon
+  User as UserIcon,
+  HandCoins
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -25,6 +26,7 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense, onOpenChangeP
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'expenses', label: 'Expenses', icon: Receipt },
+    { id: 'debts', label: 'Udhaar / Debts', icon: HandCoins },
     { id: 'budgets', label: 'Budgets', icon: Target },
     { id: 'categories', label: 'Categories', icon: Tags },
   ];
@@ -118,8 +120,8 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense, onOpenChangeP
                 <div className="profile-dropdown-header">
                   <div className="profile-avatar profile-avatar-lg">{initials}</div>
                   <div>
-                    <div style={{ color: '#f1f5f9', fontWeight: 600, fontSize: '0.875rem' }}>{displayName}</div>
-                    <div style={{ color: '#64748b', fontSize: '0.75rem' }}>{user?.email}</div>
+                    <div style={{ color: '#111827', fontWeight: 600, fontSize: '0.875rem' }}>{displayName}</div>
+                    <div style={{ color: '#6B7280', fontSize: '0.75rem' }}>{user?.email}</div>
                   </div>
                 </div>
                 <div className="profile-dropdown-divider" />

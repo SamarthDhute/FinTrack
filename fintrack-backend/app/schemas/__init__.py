@@ -14,6 +14,14 @@ from app.schemas.expense_schema import (
     ExpenseUpdate,
     ExpenseResponse,
 )
+from app.schemas.debt_schema import (
+    DebtCreate,
+    DebtUpdate,
+    DebtResponse,
+    DebtSummaryResponse,
+    DebtRepaymentCreate,
+    DebtRepaymentResponse,
+)
 
 __all__ = [
     "CategoryCreate",
@@ -26,4 +34,10 @@ __all__ = [
     "ExpenseCreate",
     "ExpenseUpdate",
     "ExpenseResponse",
+    "DebtCreate",
+    "DebtUpdate",
+    "DebtResponse",
+    "DebtSummaryResponse",
+    "DebtRepaymentCreate",
+    "DebtRepaymentResponse",
 ]

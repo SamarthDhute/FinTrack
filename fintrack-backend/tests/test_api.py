@@ -304,3 +304,48 @@ def test_unauthenticated_requests_blocked(client):
     assert client.get("/api/v1/budgets").status_code == 401
     assert client.get("/api/v1/dashboard/summary").status_code == 401
     assert client.get("/api/v1/auth/me").status_code == 401
+    assert client.post("/api/v1/ai/insights").status_code == 401
+    assert client.get("/api/v1/ai/provider-status").status_code == 401
+
+
+def test_ai_insights_and_provider_status(client):
+    # 1. Register & verify user
+    _register_and_verify(client, email="ai_test_user@example.com", password="Password123!")
+    login_res = client.post(
+        "/api/v1/auth/login",
+        json={"email": "ai_test_user@example.com", "password": "Password123!"},
+    )
+    token = login_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 2. Check AI provider status endpoint
+    status_res = client.get("/api/v1/ai/provider-status", headers=headers)
+    assert status_res.status_code == 200
+    status_data = status_res.json()
+    assert "configured_provider" in status_data
+    assert "active_engine" in status_data
+
+    # 4. Test Natural Language Query Chat Endpoint
+    chat_res = client.post(
+        "/api/v1/ai/chat",
+        headers=headers,
+        json={"message": "Is mahine maine sabse zyada kahan kharch kiya?"},
+    )
+    assert chat_res.status_code == 200
+    chat_data = chat_res.json()
+    assert "reply" in chat_data
+    assert len(chat_data["reply"]) > 10
+    assert "quick_followups" in chat_data
+
+    # 5. Test Smart Auto-Categorization
+    cat_res = client.post(
+        "/api/v1/ai/categorize",
+        headers=headers,
+        json={"title": "Swiggy Lunch Order", "amount": 450.0},
+    )
+    assert cat_res.status_code == 200
+    cat_data = cat_res.json()
+    assert "category_name" in cat_data
+    assert cat_data["confidence"] >= 0.5
+
+

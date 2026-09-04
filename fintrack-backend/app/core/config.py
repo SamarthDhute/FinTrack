@@ -65,6 +65,13 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str = ""
     BREVO_API_KEY: str = ""
 
+    # ── AI Insights Settings (Provider: "gemini", "openai", "groq", "deepseek", "ollama", "rules", "auto") ──
+    AI_PROVIDER: str = "auto"
+    AI_MODEL_NAME: str = "gemini-3.5-flash"
+    GEMINI_API_KEY: str = ""
+    OPENAI_API_KEY: str = ""
+    AI_BASE_URL: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

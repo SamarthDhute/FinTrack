@@ -27,15 +27,16 @@ export default function ForgotPasswordPage({ onBackToLogin, onGoToReset }) {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <button
-          type="button"
-          className="auth-forgot-link"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginBottom: '1.25rem' }}
-          onClick={onBackToLogin}
-        >
-          <ArrowLeft size={14} />
-          Back to login
-        </button>
+        <div style={{ marginBottom: '1.25rem' }}>
+          <button
+            type="button"
+            className="auth-back-btn"
+            onClick={onBackToLogin}
+          >
+            <ArrowLeft size={14} />
+            <span>Back to login</span>
+          </button>
+        </div>
 
         <div className="auth-header">
           <h1 className="auth-title">Reset Password</h1>
@@ -53,12 +54,12 @@ export default function ForgotPasswordPage({ onBackToLogin, onGoToReset }) {
 
         {isSubmitted ? (
           <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-            <div style={{ color: '#10b981', display: 'inline-flex', marginBottom: '0.75rem' }}>
+            <div style={{ color: '#16A34A', display: 'inline-flex', marginBottom: '0.75rem' }}>
               <CheckCircle2 size={48} />
             </div>
-            <h3 style={{ color: '#f8fafc', fontSize: '1.125rem', marginBottom: '0.5rem' }}>Check your email</h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.875rem', lineHeight: '1.5', marginBottom: '1.5rem' }}>
-              If an account exists for <strong style={{ color: '#e2e8f0' }}>{email}</strong>, you will receive a reset link shortly.
+            <h3 style={{ color: '#111827', fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem' }}>Check your email</h3>
+            <p style={{ color: '#6B7280', fontSize: '0.875rem', lineHeight: '1.5', marginBottom: '1.5rem' }}>
+              If an account exists for <strong style={{ color: '#111827' }}>{email}</strong>, you will receive a reset link shortly.
             </p>
             {onGoToReset && (
               <button
@@ -72,8 +73,7 @@ export default function ForgotPasswordPage({ onBackToLogin, onGoToReset }) {
             )}
             <button
               type="button"
-              className="auth-submit-btn"
-              style={{ background: 'rgba(255,255,255,0.06)' }}
+              className="auth-secondary-btn"
               onClick={onBackToLogin}
             >
               Return to Sign In
@@ -100,6 +100,17 @@ export default function ForgotPasswordPage({ onBackToLogin, onGoToReset }) {
               {isLoading ? 'Sending...' : 'Send Reset Link'}
               {!isLoading && <Send size={16} />}
             </button>
+
+            <div style={{ textAlign: 'center', marginTop: '0.75rem' }}>
+              <button
+                type="button"
+                className="auth-forgot-link"
+                onClick={onBackToLogin}
+              >
+                <ArrowLeft size={14} />
+                <span>Back to Sign In</span>
+              </button>
+            </div>
           </form>
         )}
       </div>

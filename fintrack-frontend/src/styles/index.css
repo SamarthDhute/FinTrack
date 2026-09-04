@@ -1,57 +1,84 @@
 /* ==========================================================================
-   FinTrack — Modern Financial Design System Tokens & Base Styles
+   FinTrack — Modern Clean Design System Tokens & Base Styles
+   Palette:
+   - Background:      #F8F9FB
+   - Surface / Cards: #FFFFFF
+   - Primary Accent:  #3B82F6 (Electric Blue) & #6366F1 (Indigo)
+   - Income / Pos:    #16A34A (Emerald Green)
+   - Expense / Neg:   #DC2626 (Crimson Red)
+   - Text Primary:    #111827 (Slate 900)
+   - Text Secondary:  #6B7280 (Slate 500)
    ========================================================================== */
 
 :root {
-  /* Color Palette - Dark FinTech Theme */
-  --bg-primary: #0b0f19;
-  --bg-secondary: #111827;
-  --bg-tertiary: #1f293d;
-  --bg-card: rgba(17, 24, 39, 0.75);
-  --bg-card-hover: rgba(31, 41, 61, 0.85);
-  --bg-input: #151d30;
+  /* Color Palette - Clean Light Mode */
+  --bg-primary: #F8F9FB;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #F3F4F6;
+  --bg-card: #FFFFFF;
+  --bg-card-solid: #FFFFFF;
+  --bg-card-hover: #F9FAFB;
+  --bg-input: #FFFFFF;
   
   /* Borders & Dividers */
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-focus: #6366f1;
-  --border-hover: rgba(99, 102, 241, 0.4);
+  --border-subtle: #E5E7EB;
+  --border-glass: #E2E8F0;
+  --border-focus: #3B82F6;
+  --border-hover: #93C5FD;
+  --border-purple: #C7D2FE;
 
-  /* Primary Brand Accents */
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --primary-glow: rgba(99, 102, 241, 0.25);
-  --secondary-accent: #06b6d4;
+  /* Signature Accents */
+  --neon-lime: #3B82F6;
+  --neon-lime-hover: #2563EB;
+  --neon-lime-glow: rgba(59, 130, 246, 0.2);
+  --neon-lime-subtle: rgba(59, 130, 246, 0.08);
 
-  /* Financial Health Indicator Colors */
-  --emerald-green: #10b981;
-  --emerald-glow: rgba(16, 185, 129, 0.2);
-  --amber-warning: #f59e0b;
-  --amber-glow: rgba(245, 158, 11, 0.2);
-  --rose-danger: #f43f5e;
-  --rose-glow: rgba(244, 63, 94, 0.2);
+  --electric-purple: #6366F1;
+  --electric-purple-hover: #4F46E5;
+  --electric-purple-glow: rgba(99, 102, 241, 0.25);
+  --electric-purple-subtle: rgba(99, 102, 241, 0.1);
+
+  --cyber-cyan: #0284C7;
+  --cyber-cyan-glow: rgba(2, 132, 199, 0.2);
+  
+  --primary: #3B82F6;
+  --primary-hover: #2563EB;
+  --primary-glow: rgba(59, 130, 246, 0.25);
+  --secondary-accent: #6366F1;
+
+  /* Status Indicators */
+  --emerald-green: #16A34A;
+  --emerald-glow: rgba(22, 163, 74, 0.15);
+  --amber-warning: #D97706;
+  --amber-glow: rgba(217, 119, 6, 0.15);
+  --rose-danger: #DC2626;
+  --rose-glow: rgba(220, 38, 38, 0.15);
 
   /* Typography Colors */
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
-  --text-inverse: #0f172a;
+  --text-main: #111827;
+  --text-muted: #6B7280;
+  --text-dim: #9CA3AF;
+  --text-inverse: #FFFFFF;
 
   /* Typography Font Families */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-heading: 'Outfit', 'Inter', sans-serif;
+  --font-heading: 'Space Grotesk', 'Outfit', sans-serif;
 
   /* Radii */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 22px;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
   --radius-full: 9999px;
 
   /* Elevation & Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 12px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 12px 28px -4px rgba(0, 0, 0, 0.4), 0 4px 8px -2px rgba(0, 0, 0, 0.2);
-  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 12px 28px -4px rgba(0, 0, 0, 0.08), 0 4px 8px -2px rgba(0, 0, 0, 0.04);
+  --shadow-neo-lime: 0 4px 18px rgba(59, 130, 246, 0.2);
+  --shadow-neo-purple: 0 4px 18px rgba(99, 102, 241, 0.22);
+  --shadow-glass: 0 20px 40px -15px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.04);
 
   /* Transitions */
   --transition-fast: 0.15s ease;
@@ -77,16 +104,16 @@ html, body {
   overflow-x: hidden;
 }
 
-/* Background Atmospheric Glow */
+/* Deep Ambient Glow Canvas */
 body::before {
   content: '';
   position: fixed;
-  top: 0;
-  left: 20%;
-  width: 60vw;
-  height: 350px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(6, 182, 212, 0.04) 50%, transparent 80%);
-  filter: blur(80px);
+  top: -10%;
+  left: 10%;
+  width: 80vw;
+  height: 450px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, rgba(99, 102, 241, 0.03) 40%, transparent 75%);
+  filter: blur(100px);
   z-index: -1;
   pointer-events: none;
 }
@@ -95,8 +122,8 @@ body::before {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   color: var(--text-main);
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-weight: 700;
+  letter-spacing: -0.03em;
 }
 
 a {
@@ -105,7 +132,7 @@ a {
   transition: color var(--transition-fast);
 }
 a:hover {
-  color: #818cf8;
+  color: var(--primary-hover);
 }
 
 button, input, select, textarea {
@@ -115,16 +142,29 @@ button, input, select, textarea {
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
   background: var(--bg-primary);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-tertiary);
+  background: #CBD5E1;
   border-radius: var(--radius-full);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-dim);
+}
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .hide-on-desktop {
+    display: none !important;
+  }
 }

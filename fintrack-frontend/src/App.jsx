@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ToastProvider, useToast } from './components/Toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Navbar } from './components/Navbar';
@@ -6,15 +6,20 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ExpensesPage } from './pages/ExpensesPage';
 import { BudgetsPage } from './pages/BudgetsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
+import { DebtsPage } from './pages/DebtsPage';
 import AuthPage from './pages/AuthPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import { ExpenseModal } from './components/ExpenseModal';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
+import { AIChatDrawer } from './components/AIChatDrawer';
+import { QuickAddFAB } from './components/QuickAddFAB';
+import { FloatingBottomNav } from './components/FloatingBottomNav';
 import { api } from './api/client';
 import { InstallPrompt } from './components/InstallPrompt';
 import { OfflineBanner } from './components/OfflineBanner';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 const MainLayout = () => {
   const { success, error } = useToast();
@@ -25,6 +30,7 @@ const MainLayout = () => {
   const [isQuickExpenseModalOpen, setIsQuickExpenseModalOpen] = useState(false);
   const [isSavingQuickExpense, setIsSavingQuickExpense] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const fetchGlobalMetadata = useCallback(async () => {
@@ -52,7 +58,7 @@ const MainLayout = () => {
     try {
       setIsSavingQuickExpense(true);
       await api.expenses.create(payload);
-      success('Expense logged successfully!');
+      success('Expense logged ⚡');
       setIsQuickExpenseModalOpen(false);
       handleRefreshGlobalData();
     } catch (err) {
@@ -70,20 +76,22 @@ const MainLayout = () => {
   };
 
   return (
-    <div className="app-container">
+    <div className="app-container" style={{ position: 'relative', minHeight: '100vh', background: 'var(--bg-primary)' }}>
       <Navbar
         activeTab={activeTab}
         onSelectTab={(tab) => setActiveTab(tab)}
         onOpenAddExpense={() => setIsQuickExpenseModalOpen(true)}
         onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
       />
-      <main className="main-content">
+      
+      <main className="main-content" style={{ maxWidth: '1240px', margin: '0 auto', padding: '1.25rem 1rem 80px' }}>
         {activeTab === 'dashboard' && (
           <DashboardPage
             key={refreshTrigger}
             categories={categories}
             onNavigateToExpenses={() => setActiveTab('expenses')}
             onOpenAddExpense={() => setIsQuickExpenseModalOpen(true)}
+            onOpenAIChat={() => setIsAIChatOpen(true)}
           />
         )}
         {activeTab === 'expenses' && (
@@ -92,6 +100,11 @@ const MainLayout = () => {
             categories={categories}
             paymentMethods={paymentMethods}
             onRefreshGlobalData={handleRefreshGlobalData}
+          />
+        )}
+        {activeTab === 'debts' && (
+          <DebtsPage
+            key={refreshTrigger}
           />
         )}
         {activeTab === 'budgets' && (
@@ -108,6 +121,18 @@ const MainLayout = () => {
           />
         )}
       </main>
+
+      {/* Floating Action Button for 2-Tap Quick Log */}
+      <QuickAddFAB onClick={() => setIsQuickExpenseModalOpen(true)} />
+
+      {/* Glassmorphic Floating Bottom Navigation */}
+      <FloatingBottomNav
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab)}
+        onOpenAIChat={() => setIsAIChatOpen(true)}
+      />
+
+      {/* Fast Expense Modal */}
       <ExpenseModal
         isOpen={isQuickExpenseModalOpen}
         onClose={() => setIsQuickExpenseModalOpen(false)}
@@ -118,9 +143,16 @@ const MainLayout = () => {
         isSaving={isSavingQuickExpense}
         onQuickAddCategory={handleQuickAddCategory}
       />
+
       <ChangePasswordModal
         isOpen={isChangePasswordModalOpen}
         onClose={() => setIsChangePasswordModalOpen(false)}
+      />
+
+      {/* Floating AI Financial Chat Assistant */}
+      <AIChatDrawer 
+        externalOpen={isAIChatOpen} 
+        onExternalClose={() => setIsAIChatOpen(false)} 
       />
     </div>
   );
@@ -128,16 +160,14 @@ const MainLayout = () => {
 
 const AppShell = () => {
   const { isAuthenticated, isLoading } = useAuth();
-  const [authView, setAuthView] = useState('auth'); // 'auth' | 'forgot-password' | 'reset-password' | 'verify-email'
+  const [authView, setAuthView] = useState('auth');
   const [resetToken, setResetToken] = useState(null);
   const [verifyToken, setVerifyToken] = useState(null);
 
   useEffect(() => {
-    // 1. Check window.location.search (?token=...)
     const urlParams = new URLSearchParams(window.location.search);
     let token = urlParams.get('token');
 
-    // 2. Check window.location.hash
     const hash = window.location.hash || '';
     const path = window.location.pathname || '';
 
@@ -164,10 +194,10 @@ const AppShell = () => {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: '#94a3b8' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F8F9FB', color: '#3B82F6' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ width: '40px', height: '40px', border: '3px solid rgba(99, 102, 241, 0.2)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
-          <p>Loading FinTrack...</p>
+          <div style={{ width: '45px', height: '45px', border: '3px solid rgba(59, 130, 246, 0.2)', borderTopColor: '#3B82F6', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem' }} />
+          <p style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, letterSpacing: '0.04em', color: '#111827' }}>LOADING FINTRACK...</p>
         </div>
       </div>
     );
@@ -222,13 +252,15 @@ const AppShell = () => {
 
 export function App() {
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <InstallPrompt />
-        <OfflineBanner />
-        <AppShell />
-      </ToastProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ToastProvider>
+          <InstallPrompt />
+          <OfflineBanner />
+          <AppShell />
+        </ToastProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

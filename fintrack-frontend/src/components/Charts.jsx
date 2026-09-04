@@ -133,9 +133,9 @@ export const CategoryDonutChart = ({ data = [] }) => {
               justifyContent: 'space-between',
               padding: '0.4rem 0.6rem',
               borderRadius: 'var(--radius-sm)',
-              background: hoveredIdx === idx ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
+              background: hoveredIdx === idx ? '#F3F4F6' : '#F9FAFB',
               cursor: 'pointer',
-              border: `1px solid ${hoveredIdx === idx ? slice.color : 'transparent'}`,
+              border: `1px solid ${hoveredIdx === idx ? slice.color : '#E5E7EB'}`,
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={() => setHoveredIdx(idx)}
@@ -396,7 +396,7 @@ export const SpendingTrendChart = ({ data = [] }) => {
                 y1={y}
                 x2={width - paddingRight}
                 y2={y}
-                stroke={i === 0 ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.05)'}
+                stroke={i === 0 ? '#E5E7EB' : '#F3F4F6'}
                 strokeDasharray={i === 0 ? 'none' : '4 4'}
               />
               <text
@@ -421,7 +421,7 @@ export const SpendingTrendChart = ({ data = [] }) => {
         <path
           d={pathD}
           fill="none"
-          stroke="#6366f1"
+          stroke="#3B82F6"
           strokeWidth="2.2"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -434,7 +434,7 @@ export const SpendingTrendChart = ({ data = [] }) => {
             y1={paddingTop}
             x2={activePt.x}
             y2={height - paddingBottom}
-            stroke="rgba(99, 102, 241, 0.45)"
+            stroke="rgba(59, 130, 246, 0.45)"
             strokeWidth="1.5"
             strokeDasharray="3 3"
           />
@@ -468,8 +468,8 @@ export const SpendingTrendChart = ({ data = [] }) => {
                   cx={pt.x}
                   cy={pt.y}
                   r={isHovered ? 6 : 4}
-                  fill={'var(--bg-card)'}
-                  stroke="#6366f1"
+                  fill={'#FFFFFF'}
+                  stroke="#3B82F6"
                   strokeWidth={isHovered ? 3 : 1.5}
                   filter={isHovered ? 'url(#pointGlow)' : 'none'}
                   style={{
@@ -495,7 +495,7 @@ export const SpendingTrendChart = ({ data = [] }) => {
         })}
       </svg>
 
-      {/* Floating Dark Theme Tooltip */}
+      {/* Floating Light Theme Tooltip */}
       {activePt && (
         <div
           style={{
@@ -505,26 +505,24 @@ export const SpendingTrendChart = ({ data = [] }) => {
             transform: `translate(${
               activePt.x > width * 0.72 ? '-102%' : activePt.x < width * 0.28 ? '4%' : '-50%'
             }, -115%)`,
-            background: 'rgba(15, 23, 42, 0.94)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(99, 102, 241, 0.25)',
+            background: '#FFFFFF',
+            border: '1px solid #E5E7EB',
             borderRadius: '8px',
             padding: '0.45rem 0.75rem',
-            boxShadow: '0 8px 24px -4px rgba(0, 0, 0, 0.6), 0 0 12px rgba(99, 102, 241, 0.15)',
+            boxShadow: '0 8px 24px -4px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04)',
             pointerEvents: 'none',
             zIndex: 30,
             whiteSpace: 'nowrap',
             transition: 'transform 0.08s ease-out, top 0.08s ease-out, left 0.08s ease-out',
           }}
         >
-          <div style={{ fontSize: '0.725rem', color: 'var(--text-dim)', fontWeight: 500, marginBottom: '2px' }}>
+          <div style={{ fontSize: '0.725rem', color: '#6B7280', fontWeight: 500, marginBottom: '2px' }}>
             {activePt.fullDate}
           </div>
           <div
             style={{
               fontSize: '0.9rem',
-              color: '#ffffff',
+              color: '#111827',
               fontWeight: 700,
               fontFamily: 'var(--font-heading)',
               display: 'flex',
@@ -532,7 +530,7 @@ export const SpendingTrendChart = ({ data = [] }) => {
               gap: '6px',
             }}
           >
-            <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>Spent:</span>
+            <span style={{ fontSize: '0.75rem', color: '#3B82F6', fontWeight: 600 }}>Spent:</span>
             {formatCurrency(activePt.val)}
           </div>
         </div>

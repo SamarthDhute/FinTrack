@@ -11,6 +11,8 @@ from app.controllers.payment_method_controller import router as payment_method_r
 from app.controllers.budget_controller import router as budget_router
 from app.controllers.expense_controller import router as expense_router
 from app.controllers.dashboard_controller import router as dashboard_router
+from app.controllers.ai_controller import router as ai_router
+from app.controllers.debt_controller import router as debt_router
 
 app = FastAPI(
     title="FinTrack API",
@@ -61,4 +63,7 @@ app.include_router(category_router, prefix="/api/v1")
 app.include_router(payment_method_router, prefix="/api/v1")
 app.include_router(budget_router, prefix="/api/v1")
 app.include_router(expense_router, prefix="/api/v1")
+app.include_router(debt_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
+app.include_router(ai_router, prefix="/api/v1")
+

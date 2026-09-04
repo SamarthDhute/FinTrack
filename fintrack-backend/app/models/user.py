@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from app.models.category import Category
     from app.models.budget import Budget
     from app.models.refresh_token import RefreshToken
+    from app.models.debt import Debt
 
 
 class User(Base):
@@ -42,3 +43,4 @@ class User(Base):
     expenses: Mapped[List["Expense"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     categories: Mapped[List["Category"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     budgets: Mapped[List["Budget"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    debts: Mapped[List["Debt"]] = relationship(back_populates="user", cascade="all, delete-orphan")

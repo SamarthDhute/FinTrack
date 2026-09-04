@@ -4,7 +4,8 @@
  * Includes in-memory access token storage, CSRF headers, and silent 401 refresh interceptor.
  */
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const BASE_URL = typeof RAW_BASE_URL === 'string' ? RAW_BASE_URL.trim().replace(/\/+$/, '') : 'http://localhost:8000';
 const API_PREFIX = `${BASE_URL}/api/v1`;
 
 // In-memory access token (never stored in localStorage for security)
@@ -185,4 +186,38 @@ export const api = {
     paymentMethodChart: () => request('/dashboard/charts/payment-method'),
     trendChart: () => request('/dashboard/charts/trend'),
   },
+
+  // Debts & Udhaar Tracker (Lent, Borrowed, Partial Repayments)
+  debts: {
+    list: (params = {}) => {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '') {
+          searchParams.append(key, val);
+        }
+      });
+      const queryString = searchParams.toString();
+      return request(`/debts${queryString ? `?${queryString}` : ''}`);
+    },
+    summary: () => request('/debts/summary'),
+    get: (id) => request(`/debts/${id}`),
+    create: (data) => request('/debts', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => request(`/debts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id) => request(`/debts/${id}`, { method: 'DELETE' }),
+    addRepayment: (debtId, data) => request(`/debts/${debtId}/repayments`, { method: 'POST', body: JSON.stringify(data) }),
+    deleteRepayment: (debtId, repaymentId) => request(`/debts/${debtId}/repayments/${repaymentId}`, { method: 'DELETE' }),
+  },
+
+  // AI Financial Advisor & Super-Features Suite
+  ai: {
+    getInsights: () => request('/ai/insights', { method: 'POST' }),
+    categorize: (data) => request('/ai/categorize', { method: 'POST', body: JSON.stringify(data) }),
+    chat: (data) => request('/ai/chat', { method: 'POST', body: JSON.stringify(data) }),
+    scanReceipt: (data) => request('/ai/scan-receipt', { method: 'POST', body: JSON.stringify(data) }),
+    getSubscriptions: () => request('/ai/subscriptions'),
+    getForecast: () => request('/ai/forecast'),
+    getGoalPlan: (data) => request('/ai/goal-plan', { method: 'POST', body: JSON.stringify(data) }),
+    getProviderStatus: () => request('/ai/provider-status'),
+  },
 };
+
