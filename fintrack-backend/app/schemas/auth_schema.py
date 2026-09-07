@@ -34,6 +34,7 @@ class UserResponse(BaseModel):
     email: str
     display_name: Optional[str] = None
     is_verified: bool
+    is_admin: bool = False
     google_id: Optional[str] = None  # non-null means Google account linked
     created_at: datetime
 

@@ -6,6 +6,7 @@ from app.models.payment_method import PaymentMethod
 from app.models.budget import Budget
 from app.models.expense import Expense
 from app.models.debt import Debt, DebtRepayment
+from app.models.wallet import Wallet, WalletTransaction
 
 __all__ = [
     "Base",
@@ -17,4 +18,6 @@ __all__ = [
     "Expense",
     "Debt",
     "DebtRepayment",
+    "Wallet",
+    "WalletTransaction",
 ]

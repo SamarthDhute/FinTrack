@@ -19,7 +19,8 @@ class ExpenseRepository:
             select(Expense)
             .options(
                 selectinload(Expense.category),
-                selectinload(Expense.payment_method)
+                selectinload(Expense.payment_method),
+                selectinload(Expense.wallet)
             )
             .where(and_(*conditions))
         )
@@ -32,6 +33,7 @@ class ExpenseRepository:
         search: Optional[str] = None,
         category_id: Optional[int] = None,
         payment_method_id: Optional[int] = None,
+        wallet_id: Optional[int] = None,
         date_from: Optional[date] = None,
         date_to: Optional[date] = None,
         amount_min: Optional[Decimal] = None,
@@ -57,6 +59,9 @@ class ExpenseRepository:
         if payment_method_id is not None:
             conditions.append(Expense.payment_method_id == payment_method_id)
 
+        if wallet_id is not None:
+            conditions.append(Expense.wallet_id == wallet_id)
+
         if date_from is not None:
             conditions.append(Expense.date >= date_from)
 
@@ -80,7 +85,8 @@ class ExpenseRepository:
             select(Expense)
             .options(
                 selectinload(Expense.category),
-                selectinload(Expense.payment_method)
+                selectinload(Expense.payment_method),
+                selectinload(Expense.wallet)
             )
             .where(where_clause)
         )
@@ -114,13 +120,15 @@ class ExpenseRepository:
         payment_method_id: int,
         amount: Decimal,
         date: date,
-        notes: Optional[str] = None
+        notes: Optional[str] = None,
+        wallet_id: Optional[int] = None,
     ) -> Expense:
         expense = Expense(
             user_id=user_id,
             title=title.strip(),
             category_id=category_id,
             payment_method_id=payment_method_id,
+            wallet_id=wallet_id,
             amount=amount,
             date=date,
             notes=notes.strip() if notes else None
@@ -138,6 +146,7 @@ class ExpenseRepository:
         title: Optional[str] = None,
         category_id: Optional[int] = None,
         payment_method_id: Optional[int] = None,
+        wallet_id: Optional[int] = None,
         amount: Optional[Decimal] = None,
         date: Optional[date] = None,
         notes: Optional[str] = None
@@ -148,6 +157,8 @@ class ExpenseRepository:
             expense.category_id = category_id
         if payment_method_id is not None:
             expense.payment_method_id = payment_method_id
+        if wallet_id is not None:
+            expense.wallet_id = wallet_id
         if amount is not None:
             expense.amount = amount
         if date is not None:

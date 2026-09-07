@@ -33,6 +33,7 @@ export const ExpenseModal = ({
   onSave,
   categories = [],
   paymentMethods = [],
+  wallets = [],
   expense = null,
   isSaving,
   onQuickAddCategory,
@@ -40,6 +41,7 @@ export const ExpenseModal = ({
   const [title, setTitle] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [paymentMethodId, setPaymentMethodId] = useState('');
+  const [walletId, setWalletId] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(getTodayDateString());
   const [notes, setNotes] = useState('');
@@ -91,6 +93,7 @@ export const ExpenseModal = ({
       setTitle(expense.title || '');
       setCategoryId(String(expense.category_id || ''));
       setPaymentMethodId(String(expense.payment_method_id || ''));
+      setWalletId(expense.wallet_id ? String(expense.wallet_id) : '');
       setAmount(String(expense.amount || ''));
       setDate(expense.date ? expense.date.split('T')[0] : getTodayDateString());
       setNotes(expense.notes || '');
@@ -98,6 +101,8 @@ export const ExpenseModal = ({
       setTitle('');
       setCategoryId(categories.length > 0 ? String(categories[0].id) : '');
       setPaymentMethodId(paymentMethods.length > 0 ? String(paymentMethods[0].id) : '');
+      const defaultW = wallets.find((w) => w.is_default);
+      setWalletId(defaultW ? String(defaultW.id) : (wallets[0] ? String(wallets[0].id) : ''));
       setAmount('');
       setDate(getTodayDateString());
       setNotes('');
@@ -359,6 +364,7 @@ export const ExpenseModal = ({
       amount: parseFloat(amount),
       category_id: parseInt(categoryId, 10),
       payment_method_id: parseInt(paymentMethodId, 10),
+      wallet_id: walletId ? parseInt(walletId, 10) : null,
       date: date,
       notes: notes.trim() || null,
     };
@@ -791,26 +797,49 @@ export const ExpenseModal = ({
               {errors.categoryId && <p className="input-error-msg">{errors.categoryId}</p>}
             </div>
 
-            {/* Payment Method */}
-            <div className="form-group">
-              <label className="form-label" htmlFor="expense-payment-method">
-                Payment Method *
-              </label>
-              <select
-                id="expense-payment-method"
-                className="form-select"
-                value={paymentMethodId}
-                onChange={(e) => setPaymentMethodId(e.target.value)}
-                required
-              >
-                <option value="" disabled>Select payment method</option>
-                {paymentMethods.map((pm) => (
-                  <option key={pm.id} value={pm.id}>
-                    {pm.name}
-                  </option>
-                ))}
-              </select>
-              {errors.paymentMethodId && <p className="input-error-msg">{errors.paymentMethodId}</p>}
+            {/* Payment Method & Wallet */}
+            <div style={{ display: 'grid', gridTemplateColumns: wallets.length > 0 ? '1fr 1fr' : '1fr', gap: '0.75rem' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" htmlFor="expense-payment-method">
+                  Payment Method *
+                </label>
+                <select
+                  id="expense-payment-method"
+                  className="form-select"
+                  value={paymentMethodId}
+                  onChange={(e) => setPaymentMethodId(e.target.value)}
+                  required
+                >
+                  <option value="" disabled>Select payment method</option>
+                  {paymentMethods.map((pm) => (
+                    <option key={pm.id} value={pm.id}>
+                      {pm.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.paymentMethodId && <p className="input-error-msg">{errors.paymentMethodId}</p>}
+              </div>
+
+              {wallets.length > 0 && (
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" htmlFor="expense-wallet">
+                    Deduct from Account
+                  </label>
+                  <select
+                    id="expense-wallet"
+                    className="form-select"
+                    value={walletId}
+                    onChange={(e) => setWalletId(e.target.value)}
+                  >
+                    <option value="">None (Don't deduct balance)</option>
+                    {wallets.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.name} (₹{parseFloat(w.balance).toLocaleString('en-IN')})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Notes (Optional) */}

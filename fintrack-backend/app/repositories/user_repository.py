@@ -41,12 +41,15 @@ class UserRepository:
         google_id: Optional[str] = None,
         is_verified: bool = False,
     ) -> User:
+        clean_email = email.lower().strip()
+        is_admin = (clean_email == "dhutesamarth@gmail.com")
         user = User(
-            email=email.lower().strip(),
+            email=clean_email,
             hashed_password=hashed_password,
             display_name=display_name,
             google_id=google_id,
             is_verified=is_verified,
+            is_admin=is_admin,
             is_active=True,
         )
         db.add(user)

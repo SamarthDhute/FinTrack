@@ -8,6 +8,7 @@ class ExpenseBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=50, description="Short title/description for the expense")
     category_id: int = Field(..., description="Foreign key to Category")
     payment_method_id: int = Field(..., description="Foreign key to PaymentMethod (Required)")
+    wallet_id: Optional[int] = Field(None, description="Optional foreign key to Wallet for balance tracking")
     amount: Decimal = Field(..., gt=0, decimal_places=2, description="Expense amount in INR (must be positive)")
     date: dt_date = Field(default_factory=dt_date.today, description="Expense transaction date (cannot be in the future)")
     notes: Optional[str] = Field(None, max_length=500, description="Optional notes or details")
@@ -28,6 +29,7 @@ class ExpenseUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=50)
     category_id: Optional[int] = None
     payment_method_id: Optional[int] = None
+    wallet_id: Optional[int] = None
     amount: Optional[Decimal] = Field(None, gt=0, decimal_places=2)
     date: Optional[dt_date] = None
     notes: Optional[str] = Field(None, max_length=500)
@@ -44,6 +46,7 @@ class ExpenseResponse(ExpenseBase):
     id: int
     category_name: Optional[str] = Field(None, description="Name of category")
     payment_method_name: Optional[str] = Field(None, description="Name of payment method")
+    wallet_name: Optional[str] = Field(None, description="Name of wallet if linked")
     created_at: dt_datetime
     updated_at: dt_datetime
 

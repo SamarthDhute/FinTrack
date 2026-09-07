@@ -69,3 +69,23 @@ def get_current_user_optional(
         return get_current_user(token=token, db=db)
     except HTTPException:
         return None
+
+
+def get_current_admin_user(
+    current_user = Depends(get_current_user),
+):
+    """
+    FastAPI dependency — verifies that the current user has superadmin rights
+    (either is_admin=True in the database or email is dhutesamarth@gmail.com).
+    """
+    is_superadmin = (
+        getattr(current_user, "is_admin", False) or
+        (getattr(current_user, "email", "").lower() == "dhutesamarth@gmail.com")
+    )
+    if not is_superadmin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required to access this resource",
+        )
+    return current_user
+

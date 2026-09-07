@@ -7,12 +7,15 @@ import { ExpensesPage } from './pages/ExpensesPage';
 import { BudgetsPage } from './pages/BudgetsPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { DebtsPage } from './pages/DebtsPage';
+import { WalletsPage } from './pages/WalletsPage';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import AuthPage from './pages/AuthPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import { ExpenseModal } from './components/ExpenseModal';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
+import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { AIChatDrawer } from './components/AIChatDrawer';
 import { QuickAddFAB } from './components/QuickAddFAB';
 import { FloatingBottomNav } from './components/FloatingBottomNav';
@@ -26,21 +29,25 @@ const MainLayout = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [categories, setCategories] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
+  const [wallets, setWallets] = useState([]);
 
   const [isQuickExpenseModalOpen, setIsQuickExpenseModalOpen] = useState(false);
   const [isSavingQuickExpense, setIsSavingQuickExpense] = useState(false);
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const fetchGlobalMetadata = useCallback(async () => {
     try {
-      const [cats, pms] = await Promise.all([
+      const [cats, pms, wList] = await Promise.all([
         api.categories.list().catch(() => []),
         api.paymentMethods.list().catch(() => []),
+        api.wallets.list().catch(() => []),
       ]);
       setCategories(cats || []);
       setPaymentMethods(pms || []);
+      setWallets(wList || []);
     } catch (err) {
       console.error('Error fetching global metadata:', err);
     }
@@ -82,6 +89,7 @@ const MainLayout = () => {
         onSelectTab={(tab) => setActiveTab(tab)}
         onOpenAddExpense={() => setIsQuickExpenseModalOpen(true)}
         onOpenChangePassword={() => setIsChangePasswordModalOpen(true)}
+        onOpenPrivacyPolicy={() => setIsPrivacyModalOpen(true)}
       />
       
       <main className="main-content" style={{ maxWidth: '1240px', margin: '0 auto', padding: '1.25rem 1rem 80px' }}>
@@ -99,6 +107,13 @@ const MainLayout = () => {
             key={refreshTrigger}
             categories={categories}
             paymentMethods={paymentMethods}
+            wallets={wallets}
+            onRefreshGlobalData={handleRefreshGlobalData}
+          />
+        )}
+        {activeTab === 'wallets' && (
+          <WalletsPage
+            key={refreshTrigger}
             onRefreshGlobalData={handleRefreshGlobalData}
           />
         )}
@@ -120,6 +135,11 @@ const MainLayout = () => {
             onRefreshGlobalData={handleRefreshGlobalData}
           />
         )}
+        {activeTab === 'admin' && (
+          <AdminDashboardPage
+            key={refreshTrigger}
+          />
+        )}
       </main>
 
       {/* Floating Action Button for 2-Tap Quick Log */}
@@ -139,6 +159,7 @@ const MainLayout = () => {
         onSave={handleSaveQuickExpense}
         categories={categories}
         paymentMethods={paymentMethods}
+        wallets={wallets}
         expense={null}
         isSaving={isSavingQuickExpense}
         onQuickAddCategory={handleQuickAddCategory}
@@ -147,6 +168,11 @@ const MainLayout = () => {
       <ChangePasswordModal
         isOpen={isChangePasswordModalOpen}
         onClose={() => setIsChangePasswordModalOpen(false)}
+      />
+
+      <PrivacyPolicyModal
+        isOpen={isPrivacyModalOpen}
+        onClose={() => setIsPrivacyModalOpen(false)}
       />
 
       {/* Floating AI Financial Chat Assistant */}

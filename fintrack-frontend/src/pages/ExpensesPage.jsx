@@ -29,7 +29,7 @@ import { CardZoomModal } from '../components/CardZoomModal';
 import { CountUpNumber } from '../components/CountUpNumber';
 import { formatCurrency, formatDate } from '../utils/formatters';
 
-export const ExpensesPage = ({ categories = [], paymentMethods = [], onRefreshGlobalData }) => {
+export const ExpensesPage = ({ categories = [], paymentMethods = [], wallets = [], onRefreshGlobalData }) => {
   const { success, error } = useToast();
 
   const [expenses, setExpenses] = useState([]);
@@ -996,6 +996,7 @@ export const ExpensesPage = ({ categories = [], paymentMethods = [], onRefreshGl
         onSave={handleSaveExpense}
         categories={categories}
         paymentMethods={paymentMethods}
+        wallets={wallets}
         expense={editingExpense}
         isSaving={isSavingExpense}
         onQuickAddCategory={handleQuickAddCategory}

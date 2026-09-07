@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Receipt, HandCoins, Target, Layers, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Receipt, WalletCards, HandCoins, Target, Layers, Sparkles } from 'lucide-react';
 
 export const FloatingBottomNav = ({ activeTab, onTabChange, onOpenAIChat }) => {
   const tabs = [

@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from app.models.category import Category
     from app.models.payment_method import PaymentMethod
     from app.models.user import User
+    from app.models.wallet import Wallet
 
 
 class Expense(Base):
@@ -31,6 +32,11 @@ class Expense(Base):
         nullable=False,
         index=True
     )
+    wallet_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("wallets.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -46,3 +52,4 @@ class Expense(Base):
     user: Mapped["User"] = relationship(back_populates="expenses")
     category: Mapped["Category"] = relationship(back_populates="expenses")
     payment_method: Mapped["PaymentMethod"] = relationship(back_populates="expenses")
+    wallet: Mapped[Optional["Wallet"]] = relationship(back_populates="expenses")

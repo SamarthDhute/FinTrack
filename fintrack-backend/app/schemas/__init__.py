@@ -22,6 +22,23 @@ from app.schemas.debt_schema import (
     DebtRepaymentCreate,
     DebtRepaymentResponse,
 )
+from app.schemas.wallet_schema import (
+    WalletCreate,
+    WalletUpdate,
+    WalletResponse,
+    WalletTransferCreate,
+    WalletTransactionResponse,
+    WalletSummaryResponse,
+)
+from app.schemas.admin_schema import (
+    AdminStatsResponse,
+    AdminUserListItem,
+    AdminExpenseItem,
+    AdminBudgetItem,
+    AdminWalletItem,
+    AdminDebtItem,
+    AdminUserDetailResponse,
+)
 
 __all__ = [
     "CategoryCreate",
@@ -40,4 +57,17 @@ __all__ = [
     "DebtSummaryResponse",
     "DebtRepaymentCreate",
     "DebtRepaymentResponse",
+    "WalletCreate",
+    "WalletUpdate",
+    "WalletResponse",
+    "WalletTransferCreate",
+    "WalletTransactionResponse",
+    "WalletSummaryResponse",
+    "AdminStatsResponse",
+    "AdminUserListItem",
+    "AdminExpenseItem",
+    "AdminBudgetItem",
+    "AdminWalletItem",
+    "AdminDebtItem",
+    "AdminUserDetailResponse",
 ]

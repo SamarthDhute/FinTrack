@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.models.budget import Budget
     from app.models.refresh_token import RefreshToken
     from app.models.debt import Debt
+    from app.models.wallet import Wallet
 
 
 class User(Base):
@@ -26,6 +27,7 @@ class User(Base):
     google_id: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True, index=True)
 
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
@@ -44,3 +46,4 @@ class User(Base):
     categories: Mapped[List["Category"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     budgets: Mapped[List["Budget"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     debts: Mapped[List["Debt"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    wallets: Mapped[List["Wallet"]] = relationship(back_populates="user", cascade="all, delete-orphan")

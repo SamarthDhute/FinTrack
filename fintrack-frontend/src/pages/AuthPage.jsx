@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../api/client';
-import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, Sparkles, ShieldCheck } from 'lucide-react';
+import { PrivacyPolicyModal } from '../components/PrivacyPolicyModal';
 import '../styles/auth.css';
 
 export default function AuthPage({ onForgotPasswordClick, onForgotPassword, onGoToVerify }) {
@@ -17,6 +18,7 @@ export default function AuthPage({ onForgotPasswordClick, onForgotPassword, onGo
   const [isUnverified, setIsUnverified] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendStatus, setResendStatus] = useState('');
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -268,7 +270,36 @@ export default function AuthPage({ onForgotPasswordClick, onForgotPassword, onGo
           </svg>
           <span>{tab === 'login' ? 'Sign in with Google' : 'Sign up with Google'}</span>
         </button>
+
+        {/* Privacy Policy Footer */}
+        <div style={{ marginTop: '1.25rem', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.85rem' }}>
+          <button
+            type="button"
+            onClick={() => setShowPrivacyModal(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#94A3B8',
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              textDecoration: 'underline',
+              padding: 0,
+            }}
+          >
+            <ShieldCheck size={14} color="#10B981" />
+            <span>Privacy Policy & Data Security</span>
+          </button>
+        </div>
       </div>
+
+      <PrivacyPolicyModal 
+        isOpen={showPrivacyModal} 
+        onClose={() => setShowPrivacyModal(false)} 
+      />
     </div>
   );
 }
+

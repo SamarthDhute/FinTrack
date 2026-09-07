@@ -223,6 +223,27 @@ export const api = {
     deleteRepayment: (debtId, repaymentId) => request(`/debts/${debtId}/repayments/${repaymentId}`, { method: 'DELETE' }),
   },
 
+  // Wallets & Multi-Account Management
+  wallets: {
+    list: () => request('/wallets'),
+    summary: () => request('/wallets/summary'),
+    get: (id) => request(`/wallets/${id}`),
+    create: (data) => request('/wallets', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => request(`/wallets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id) => request(`/wallets/${id}`, { method: 'DELETE' }),
+    transfer: (data) => request('/wallets/transfer', { method: 'POST', body: JSON.stringify(data) }),
+    getTransactions: (id, params = {}) => {
+      const searchParams = new URLSearchParams(params);
+      const queryString = searchParams.toString();
+      return request(`/wallets/${id}/transactions${queryString ? `?${queryString}` : ''}`);
+    },
+    getAllTransactions: (params = {}) => {
+      const searchParams = new URLSearchParams(params);
+      const queryString = searchParams.toString();
+      return request(`/wallets/transactions/all${queryString ? `?${queryString}` : ''}`);
+    },
+  },
+
   // AI Financial Advisor & Super-Features Suite
   ai: {
     getInsights: () => request('/ai/insights', { method: 'POST' }),
@@ -234,5 +255,42 @@ export const api = {
     getGoalPlan: (data) => request('/ai/goal-plan', { method: 'POST', body: JSON.stringify(data) }),
     getProviderStatus: () => request('/ai/provider-status'),
   },
+
+  // Superadmin Management & Platform Monitoring
+  admin: {
+    getStats: () => request('/admin/stats'),
+    getUsers: (params = {}) => {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '') {
+          searchParams.append(key, val);
+        }
+      });
+      const queryString = searchParams.toString();
+      return request(`/admin/users${queryString ? `?${queryString}` : ''}`);
+    },
+    getUserDetails: (userId) => request(`/admin/users/${userId}`),
+    getExpenses: (params = {}) => {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '') {
+          searchParams.append(key, val);
+        }
+      });
+      const queryString = searchParams.toString();
+      return request(`/admin/expenses${queryString ? `?${queryString}` : ''}`);
+    },
+    getBudgets: (params = {}) => {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '') {
+          searchParams.append(key, val);
+        }
+      });
+      const queryString = searchParams.toString();
+      return request(`/admin/budgets${queryString ? `?${queryString}` : ''}`);
+    },
+  },
 };
+
 

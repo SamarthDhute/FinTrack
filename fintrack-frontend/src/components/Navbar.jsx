@@ -13,23 +13,32 @@ import {
   Lock,
   ChevronDown,
   User as UserIcon,
-  HandCoins
+  HandCoins,
+  ShieldCheck,
+  ShieldAlert
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense, onOpenChangePassword }) => {
+export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense, onOpenChangePassword, onOpenPrivacyPolicy }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const profileRef = useRef(null);
 
+  const isSuperadmin = Boolean(user?.is_admin || user?.email?.toLowerCase() === 'dhutesamarth@gmail.com');
+
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'expenses', label: 'Expenses', icon: Receipt },
+    { id: 'wallets', label: 'Wallets', icon: WalletCards },
     { id: 'debts', label: 'Udhaar / Debts', icon: HandCoins },
     { id: 'budgets', label: 'Budgets', icon: Target },
     { id: 'categories', label: 'Categories', icon: Tags },
   ];
+
+  if (isSuperadmin) {
+    navItems.push({ id: 'admin', label: 'Admin Portal', icon: ShieldAlert });
+  }
 
   // Close profile dropdown when clicking outside
   useEffect(() => {
@@ -128,7 +137,30 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense, onOpenChangeP
                     <div style={{ color: '#6B7280', fontSize: '0.75rem' }}>{user?.email}</div>
                   </div>
                 </div>
+                {isSuperadmin && (
+                  <button
+                    className="profile-dropdown-item"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      handleTabClick('admin');
+                    }}
+                    style={{ color: '#10B981', fontWeight: 600 }}
+                  >
+                    <ShieldAlert size={15} />
+                    <span>Admin Portal</span>
+                  </button>
+                )}
                 <div className="profile-dropdown-divider" />
+                <button
+                  className="profile-dropdown-item"
+                  onClick={() => {
+                    setProfileMenuOpen(false);
+                    handleTabClick('wallets');
+                  }}
+                >
+                  <WalletCards size={15} />
+                  <span>Wallets & Accounts</span>
+                </button>
                 <button
                   className="profile-dropdown-item"
                   onClick={() => {
@@ -138,6 +170,16 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense, onOpenChangeP
                 >
                   <Lock size={15} />
                   <span>Update Password</span>
+                </button>
+                <button
+                  className="profile-dropdown-item"
+                  onClick={() => {
+                    setProfileMenuOpen(false);
+                    if (onOpenPrivacyPolicy) onOpenPrivacyPolicy();
+                  }}
+                >
+                  <ShieldCheck size={15} />
+                  <span>Privacy Policy & Security</span>
                 </button>
                 <div className="profile-dropdown-divider" />
                 <button className="profile-dropdown-item profile-dropdown-item-danger" onClick={logout}>
@@ -190,8 +232,32 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense, onOpenChangeP
             })}
           </div>
 
-          {/* Profile items in mobile */}
+          {/* Profile / Settings items in mobile */}
           <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: '0.5rem', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            {isSuperadmin && (
+              <button
+                className="nav-link-item"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleTabClick('admin');
+                }}
+                style={{ width: '100%', justifyContent: 'flex-start', padding: '0.7rem 0.9rem', borderRadius: '10px', color: '#10B981', fontWeight: 700 }}
+              >
+                <ShieldAlert size={18} />
+                <span>Admin Portal</span>
+              </button>
+            )}
+            <button
+              className="nav-link-item"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                handleTabClick('wallets');
+              }}
+              style={{ width: '100%', justifyContent: 'flex-start', padding: '0.7rem 0.9rem', borderRadius: '10px' }}
+            >
+              <WalletCards size={18} />
+              <span>Wallets & Accounts</span>
+            </button>
             <button
               className="nav-link-item"
               onClick={() => {
@@ -202,6 +268,17 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense, onOpenChangeP
             >
               <Lock size={18} />
               <span>Update Password</span>
+            </button>
+            <button
+              className="nav-link-item"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                if (onOpenPrivacyPolicy) onOpenPrivacyPolicy();
+              }}
+              style={{ width: '100%', justifyContent: 'flex-start', padding: '0.7rem 0.9rem', borderRadius: '10px' }}
+            >
+              <ShieldCheck size={18} />
+              <span>Privacy Policy & Security</span>
             </button>
             <button
               className="nav-link-item"
@@ -217,3 +294,4 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense, onOpenChangeP
     </header>
   );
 };
+
