@@ -159,40 +159,42 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense, onOpenChangeP
       {mobileMenuOpen && (
         <div className="mobile-drawer">
           {/* User info header */}
-          <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <div className="profile-avatar">{initials}</div>
-            <div>
-              <div style={{ color: '#f8fafc', fontSize: '0.875rem', fontWeight: 600 }}>{displayName}</div>
-              <div style={{ color: '#64748b', fontSize: '0.75rem' }}>{user?.email}</div>
+          <div className="mobile-user-header">
+            <div className="profile-avatar profile-avatar-lg">{initials}</div>
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{ color: 'var(--text-main)', fontSize: '0.9rem', fontWeight: 700, textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>{displayName}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>{user?.email}</div>
             </div>
           </div>
 
           {/* Nav items */}
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                className={`nav-link-item ${isActive ? 'active' : ''}`}
-                onClick={() => handleTabClick(item.id)}
-                style={{ width: '100%', justifyContent: 'flex-start', padding: '0.75rem 1rem' }}
-              >
-                <Icon size={18} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  className={`nav-link-item ${isActive ? 'active' : ''}`}
+                  onClick={() => handleTabClick(item.id)}
+                  style={{ width: '100%', justifyContent: 'flex-start', padding: '0.7rem 0.9rem', borderRadius: '10px' }}
+                >
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
 
           {/* Profile items in mobile */}
-          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', marginTop: '0.25rem', paddingTop: '0.25rem' }}>
+          <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: '0.5rem', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '3px' }}>
             <button
               className="nav-link-item"
               onClick={() => {
                 setMobileMenuOpen(false);
                 if (onOpenChangePassword) onOpenChangePassword();
               }}
-              style={{ width: '100%', justifyContent: 'flex-start', padding: '0.75rem 1rem' }}
+              style={{ width: '100%', justifyContent: 'flex-start', padding: '0.7rem 0.9rem', borderRadius: '10px' }}
             >
               <Lock size={18} />
               <span>Update Password</span>
@@ -200,7 +202,7 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense, onOpenChangeP
             <button
               className="nav-link-item"
               onClick={logout}
-              style={{ width: '100%', justifyContent: 'flex-start', padding: '0.75rem 1rem', color: '#f87171' }}
+              style={{ width: '100%', justifyContent: 'flex-start', padding: '0.7rem 0.9rem', borderRadius: '10px', color: 'var(--rose-danger)' }}
             >
               <LogOut size={18} />
               <span>Log Out</span>

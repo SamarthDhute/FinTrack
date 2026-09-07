@@ -355,12 +355,22 @@ export const DebtsPage = () => {
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '1rem',
+          gap: '0.85rem',
           marginBottom: '1.25rem',
         }}
       >
-        {/* Filter Pills */}
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+        {/* Filter Pills with smooth horizontal touch-scroll on mobile */}
+        <div 
+          className="touch-scroll" 
+          style={{ 
+            display: 'flex', 
+            gap: '6px', 
+            overflowX: 'auto', 
+            whiteSpace: 'nowrap', 
+            padding: '2px 0 6px 0',
+            maxWidth: '100%',
+          }}
+        >
           {[
             { id: 'ALL', label: 'All Entries' },
             { id: 'LENT', label: 'Maine Diye (Lent)' },
@@ -381,6 +391,7 @@ export const DebtsPage = () => {
                 color: activeTab === tab.id ? '#FFFFFF' : '#4B5563',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                flexShrink: 0,
               }}
             >
               {tab.label}
@@ -389,7 +400,7 @@ export const DebtsPage = () => {
         </div>
 
         {/* Search */}
-        <div style={{ position: 'relative', minWidth: '240px' }}>
+        <div style={{ position: 'relative', width: '100%', maxWidth: '320px', minWidth: '200px' }}>
           <Search size={16} style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }} />
           <input
             type="text"

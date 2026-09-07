@@ -128,12 +128,13 @@ export const CategoriesPage = ({ onRefreshGlobalData }) => {
         style={{
           display: 'flex',
           alignItems: 'center',
+          flexWrap: 'wrap',
           gap: '0.75rem',
-          padding: '0.75rem 1.25rem',
-          marginBottom: '1.5rem',
+          padding: '0.75rem 1.15rem',
+          marginBottom: '1.25rem',
         }}
       >
-        <div className="search-input-wrapper" style={{ flex: 1, maxWidth: 400 }}>
+        <div className="search-input-wrapper" style={{ flex: '1 1 220px', width: '100%', maxWidth: '100%' }}>
           <Search size={16} className="search-icon-inside" style={{ color: 'var(--text-dim)' }} />
           <input
             type="text"
@@ -164,7 +165,7 @@ export const CategoriesPage = ({ onRefreshGlobalData }) => {
           )}
         </div>
         {search && (
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
             Found {filteredCategories.length} categories, {filteredPaymentMethods.length} payment channels
           </span>
         )}

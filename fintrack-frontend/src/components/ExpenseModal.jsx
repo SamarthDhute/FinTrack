@@ -375,28 +375,29 @@ export const ExpenseModal = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: '10px',
+              flexWrap: 'wrap',
+              gap: '8px',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', overflow: 'hidden', flex: '1 1 200px' }}>
               {receiptPreview ? (
                 <img 
                   src={receiptPreview} 
                   alt="Receipt Preview" 
-                  style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #E5E7EB' }} 
+                  style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #E5E7EB', flexShrink: 0 }} 
                 />
               ) : (
-                <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Camera size={15} style={{ color: '#3B82F6' }} />
                 </div>
               )}
               <div style={{ overflow: 'hidden' }}>
-                <span style={{ fontSize: '0.82rem', color: receiptScanSuccess ? '#16A34A' : '#4B5563', fontWeight: receiptScanSuccess ? 700 : 500, display: 'block', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                <span style={{ fontSize: '0.8rem', color: receiptScanSuccess ? '#16A34A' : '#4B5563', fontWeight: receiptScanSuccess ? 700 : 500, display: 'block', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden' }}>
                   {isScanningReceipt
                     ? 'AI reading receipt text...'
                     : receiptScanSuccess
                     ? `✓ Bill Auto-filled (${receiptScanData?.merchant_name || receiptScanData?.title || 'Extracted'})`
-                    : 'Upload receipt image to auto-fill:'}
+                    : 'Upload receipt to auto-fill:'}
                 </span>
               </div>
             </div>
@@ -448,8 +449,19 @@ export const ExpenseModal = ({
 
         {/* 1-Tap Vibe Tags */}
         {!expense && (
-          <div style={{ padding: '0.65rem 1.25rem 0', display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <span style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', fontWeight: 600 }}>
+          <div 
+            className="touch-scroll" 
+            style={{ 
+              padding: '0.65rem 1.25rem 0', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              overflowX: 'auto', 
+              whiteSpace: 'nowrap',
+              WebkitOverflowScrolling: 'touch' 
+            }}
+          >
+            <span style={{ fontSize: '0.7rem', color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', fontWeight: 600, flexShrink: 0 }}>
               1-Tap Tags:
             </span>
             {VIBE_TAGS.map((tag) => (
@@ -468,6 +480,7 @@ export const ExpenseModal = ({
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                   fontWeight: 500,
+                  flexShrink: 0,
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)';

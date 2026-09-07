@@ -143,18 +143,26 @@ export const BudgetsPage = ({ categories = [], onRefreshGlobalData }) => {
               <h2 style={{ fontSize: '1.15rem', marginBottom: '0.85rem', color: 'var(--text-main)' }}>
                 🎯 Overall Monthly Budget
               </h2>
-              <div className="card" style={{ borderLeft: '4px solid var(--primary)', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(17, 24, 39, 0.8) 100%)' }}>
+              <div 
+                className="card" 
+                style={{ 
+                  border: '1px solid #E5E7EB',
+                  borderLeft: '4px solid var(--primary)', 
+                  background: '#FFFFFF',
+                  boxShadow: '0 4px 14px rgba(59, 130, 246, 0.06)',
+                }}
+              >
                 {(() => {
                   const statusInfo = getBudgetStatusInfo(overallBudget.status, overallBudget.percentage_spent);
                   const isOver = (overallBudget.percentage_spent || 0) > 100;
                   return (
                     <div>
-                      <div className="budget-card-header">
+                      <div className="budget-card-header" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
                         <div>
                           <span className="badge" style={{ backgroundColor: statusInfo.badgeBg, color: statusInfo.badgeText, border: `1px solid ${statusInfo.barColor}` }}>
                             {statusInfo.label}
                           </span>
-                          <h3 style={{ fontSize: '1.4rem', fontWeight: 700, marginTop: '0.5rem' }}>
+                          <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginTop: '0.5rem', color: 'var(--text-main)' }}>
                             Entire Month Spending Limit
                           </h3>
                         </div>
@@ -182,19 +190,19 @@ export const BudgetsPage = ({ categories = [], onRefreshGlobalData }) => {
                         </div>
                       </div>
 
-                      <div className="budget-card-stats" style={{ alignItems: 'flex-end', marginTop: '1rem' }}>
+                      <div className="budget-card-stats" style={{ alignItems: 'flex-end', marginTop: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                         <div>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Spent so far</div>
-                          <div className="budget-spent-val" style={{ color: statusInfo.barColor, fontSize: '1.75rem' }}>
+                          <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>Spent so far</div>
+                          <div className="budget-spent-val" style={{ color: statusInfo.barColor, fontSize: 'clamp(1.4rem, 4vw, 1.75rem)' }}>
                             {formatCurrency(overallBudget.spent_amount)}
                           </div>
                         </div>
 
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                          <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
                             {isOver ? 'Over budget by' : 'Remaining budget'}
                           </div>
-                          <div style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 600, color: isOver ? 'var(--rose-danger)' : 'var(--emerald-green)' }}>
+                          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1.1rem, 3.5vw, 1.25rem)', fontWeight: 700, color: isOver ? 'var(--rose-danger)' : 'var(--emerald-green)' }}>
                             {formatCurrency(Math.abs(overallBudget.remaining_amount))}
                           </div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>

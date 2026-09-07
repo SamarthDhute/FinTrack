@@ -351,7 +351,8 @@ export const ExpensesPage = ({ categories = [], paymentMethods = [], onRefreshGl
         </div>
       ) : (
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
+          {/* Desktop Table View */}
+          <div className="table-container hide-on-mobile" style={{ border: 'none', borderRadius: 0 }}>
             <table className="custom-table">
               <thead>
                 <tr>
@@ -421,6 +422,91 @@ export const ExpensesPage = ({ categories = [], paymentMethods = [], onRefreshGl
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card List View (Clean touch cards on small screens) */}
+          <div className="show-on-mobile" style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            {expenses.map((expense) => (
+              <div 
+                key={expense.id}
+                style={{
+                  background: '#F9FAFB',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '12px',
+                  padding: '0.85rem 1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111827', wordBreak: 'break-word' }}>
+                      {expense.title}
+                    </div>
+                    {expense.notes && (
+                      <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <FileText size={11} style={{ flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{expense.notes}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontFamily: 'var(--font-heading)', fontWeight: 800, fontSize: '1.1rem', color: '#DC2626', whiteSpace: 'nowrap' }}>
+                    -{formatCurrency(expense.amount)}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px', paddingTop: '6px', borderTop: '1px solid #EEF2F6' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span 
+                      style={{
+                        background: 'rgba(59, 130, 246, 0.08)',
+                        color: '#3B82F6',
+                        border: '1px solid rgba(59, 130, 246, 0.2)',
+                        padding: '2px 7px',
+                        borderRadius: '6px',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                      }}
+                    >
+                      <Tag size={10} />
+                      {expense.category_name}
+                    </span>
+
+                    <span style={{ fontSize: '0.72rem', color: '#6B7280' }}>
+                      {formatDate(expense.date)}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '3px 8px', fontSize: '0.75rem', borderRadius: '6px' }}
+                      onClick={() => {
+                        setEditingExpense(expense);
+                        setIsExpenseModalOpen(true);
+                      }}
+                    >
+                      <Edit3 size={13} />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ padding: '3px 8px', fontSize: '0.75rem', borderRadius: '6px', color: '#DC2626' }}
+                      onClick={() => {
+                        setExpenseToDelete(expense);
+                        setIsDeleteModalOpen(true);
+                      }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Pagination Controls */}

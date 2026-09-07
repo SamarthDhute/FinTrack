@@ -283,9 +283,9 @@ export const AIChatDrawer = ({ externalOpen, onExternalClose }) => {
 
   return (
     <>
-      {/* Floating Action Trigger Button (Bottom-Right) */}
+      {/* Floating Action Trigger Button (Bottom-Right, Desktop only) */}
       <button
-        className="ai-chat-floating-btn"
+        className="ai-chat-floating-btn hide-on-mobile"
         onClick={() => setIsOpen(!isOpen)}
         style={{
           position: 'fixed',
@@ -336,26 +336,7 @@ export const AIChatDrawer = ({ externalOpen, onExternalClose }) => {
       {/* Slide-over Chat Modal Drawer */}
       {isOpen && (
         <div
-          className="ai-chat-drawer-container"
-          style={{
-            position: 'fixed',
-            bottom: '88px',
-            right: '24px',
-            width: isExpanded ? '540px' : '400px',
-            maxWidth: 'calc(100vw - 32px)',
-            height: isExpanded ? '640px' : '530px',
-            maxHeight: 'calc(100vh - 120px)',
-            background: '#FFFFFF',
-            border: '1px solid #E5E7EB',
-            borderRadius: '20px',
-            boxShadow: '0 20px 45px -10px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-            zIndex: 999,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            animation: 'fadeInUp 0.25s ease-out',
-          }}
+          className={`ai-chat-drawer-container ${isExpanded ? 'expanded' : ''}`}
         >
           {/* Header */}
           <div

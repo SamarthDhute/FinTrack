@@ -85,9 +85,9 @@ export const HeroVibeCard = ({
       style={{
         background: '#FFFFFF',
         border: '1px solid #E5E7EB',
-        borderRadius: '24px',
-        padding: '1.75rem',
-        marginBottom: '1.5rem',
+        borderRadius: '20px',
+        padding: 'clamp(1.15rem, 3vw, 1.75rem)',
+        marginBottom: '1.25rem',
         position: 'relative',
         overflow: 'hidden',
         boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03)',
@@ -109,23 +109,23 @@ export const HeroVibeCard = ({
       />
 
       {/* Top Bar: Vibe Status Pill + AI Chat Launcher */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '1.25rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '1.15rem' }}>
         <div 
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '8px',
-            padding: '6px 14px',
+            gap: '6px',
+            padding: '5px 12px',
             borderRadius: '999px',
             background: vibe.bg,
             border: `1px solid ${vibe.border}`,
           }}
         >
-          <span style={{ fontSize: '1.2rem' }}>{vibe.emoji}</span>
-          <span style={{ fontSize: '0.8rem', fontWeight: 800, color: vibe.color, letterSpacing: '0.04em' }}>
+          <span style={{ fontSize: '1.1rem' }}>{vibe.emoji}</span>
+          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: vibe.color, letterSpacing: '0.04em' }}>
             {vibe.tag}
           </span>
-          <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>
+          <span style={{ fontSize: '0.72rem', color: '#6B7280' }}>
             ({budgetHealth}% Health)
           </span>
         </div>
@@ -136,22 +136,22 @@ export const HeroVibeCard = ({
             onClick={onOpenAIChat}
             className="btn btn-purple btn-sm"
             style={{
-              padding: '6px 14px',
-              fontSize: '0.8rem',
+              padding: '5px 12px',
+              fontSize: '0.78rem',
               borderRadius: '999px',
             }}
           >
-            <Sparkles size={14} />
+            <Sparkles size={13} />
             <span>AI Advice</span>
           </button>
         )}
       </div>
 
       {/* Main Stat: Spend vs Safe to Spend */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', alignItems: 'center' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', alignItems: 'center' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {showSafeToSpend ? 'Safe to Spend Today' : 'Total Spent This Month'}
             </span>
             <button 
@@ -167,6 +167,7 @@ export const HeroVibeCard = ({
                 gap: '4px',
                 fontSize: '0.75rem',
                 fontWeight: 600,
+                padding: '2px 4px',
               }}
               title="Toggle Safe-to-Spend view"
             >
@@ -175,8 +176,8 @@ export const HeroVibeCard = ({
             </button>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-            <span style={{ fontSize: '2.5rem', fontWeight: 800, fontFamily: 'var(--font-heading)', color: '#111827', letterSpacing: '-0.03em' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <span style={{ fontSize: 'clamp(1.75rem, 5.5vw, 2.5rem)', fontWeight: 800, fontFamily: 'var(--font-heading)', color: '#111827', letterSpacing: '-0.03em', lineHeight: 1.15 }}>
               {showSafeToSpend 
                 ? formatCurrency(Math.max(safeToSpendDaily - todaySpend, 0)) 
                 : formatCurrency(totalSpend)}
@@ -188,7 +189,7 @@ export const HeroVibeCard = ({
             )}
           </div>
 
-          <p style={{ fontSize: '0.875rem', color: '#6B7280', marginTop: '4px', fontWeight: 500 }}>
+          <p style={{ fontSize: '0.825rem', color: '#6B7280', marginTop: '4px', fontWeight: 500 }}>
             {vibe.subtext}
           </p>
         </div>
@@ -198,18 +199,18 @@ export const HeroVibeCard = ({
           style={{
             background: '#F9FAFB',
             border: '1px solid #E5E7EB',
-            borderRadius: '16px',
-            padding: '1rem 1.25rem',
+            borderRadius: '14px',
+            padding: '0.9rem 1.15rem',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Flame size={16} style={{ color: burnInfo.color }} />
+              <Flame size={15} style={{ color: burnInfo.color }} />
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827' }}>
                 Daily Burn Rate
               </span>
             </div>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: burnInfo.color }}>
+            <span style={{ fontSize: '0.76rem', fontWeight: 700, color: burnInfo.color }}>
               {burnInfo.label}
             </span>
           </div>
@@ -240,19 +241,19 @@ export const HeroVibeCard = ({
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#6B7280' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#6B7280' }}>
             <span>Today: {formatCurrency(todaySpend)}</span>
-            <span>Daily Limit: {formatCurrency(safeToSpendDaily)}</span>
+            <span>Limit: {formatCurrency(safeToSpendDaily)}</span>
           </div>
         </div>
       </div>
 
       {/* Quick Action Bar */}
       {onOpenAddExpense && (
-        <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Zap size={15} style={{ color: '#3B82F6' }} />
-            <span style={{ fontSize: '0.82rem', color: '#6B7280' }}>
+        <div style={{ marginTop: '1.15rem', paddingTop: '1.15rem', borderTop: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Zap size={14} style={{ color: '#3B82F6' }} />
+            <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>
               Avg Daily Pace: <strong style={{ color: '#111827' }}>{formatCurrency(dailyAvg)}/day</strong>
             </span>
           </div>

@@ -115,11 +115,11 @@ export const AIInsightsCard = () => {
         background: '#FFFFFF',
         border: '1px solid #E5E7EB',
         borderRadius: '20px',
-        padding: '1.5rem',
+        padding: 'clamp(1rem, 2.5vw, 1.5rem)',
         boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
         position: 'relative',
         overflow: 'hidden',
-        marginBottom: '1.75rem',
+        marginBottom: '1.5rem',
       }}
     >
       {/* Decorative Glow */}
@@ -140,8 +140,8 @@ export const AIInsightsCard = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <div 
             style={{
-              width: '42px',
-              height: '42px',
+              width: '38px',
+              height: '38px',
               borderRadius: '12px',
               background: 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)',
               display: 'flex',
@@ -149,19 +149,20 @@ export const AIInsightsCard = () => {
               justifyContent: 'center',
               color: '#ffffff',
               boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+              flexShrink: 0,
             }}
           >
-            <Sparkles size={22} className={isLoading ? 'animate-spin' : ''} />
+            <Sparkles size={20} className={isLoading ? 'animate-spin' : ''} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.18rem', color: '#111827', fontWeight: 700 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#111827', fontWeight: 700 }}>
                 AI Financial Advisor & Insights
               </h3>
               <span 
                 style={{
-                  fontSize: '0.7rem',
-                  padding: '2px 8px',
+                  fontSize: '0.68rem',
+                  padding: '2px 7px',
                   borderRadius: '12px',
                   background: 'rgba(99, 102, 241, 0.1)',
                   color: '#6366F1',
@@ -173,9 +174,9 @@ export const AIInsightsCard = () => {
                 PRO
               </span>
             </div>
-            <div style={{ fontSize: '0.8rem', color: '#6B7280', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <BrainCircuit size={13} style={{ color: '#3B82F6' }} />
-              <span>
+            <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <BrainCircuit size={13} style={{ color: '#3B82F6', flexShrink: 0 }} />
+              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                 {providerInfo?.active_engine ? `Powered by ${providerInfo.active_engine}` : (insights?.provider_used ? `Powered by ${insights.provider_used}` : 'AI Spending Analyzer')}
               </span>
             </div>
@@ -183,7 +184,7 @@ export const AIInsightsCard = () => {
         </div>
 
         {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             className="btn btn-secondary btn-sm"
             onClick={() => {
@@ -227,7 +228,7 @@ export const AIInsightsCard = () => {
       </div>
 
       {/* Main Grid: Health Score + Key Insights */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '1rem' }}>
         
         {/* Card 1: Health Score Banner */}
         <div 
