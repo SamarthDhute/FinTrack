@@ -133,27 +133,6 @@ export const CardZoomModal = ({ isOpen, onClose, title, icon: Icon, children, su
         >
           {children}
         </div>
-
-        {/* Modal Footer */}
-        <div 
-          style={{
-            padding: '0.85rem 1.5rem',
-            borderTop: '1px solid #F3F4F6',
-            background: '#F9FAFB',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-          }}
-        >
-          <button 
-            type="button" 
-            className="btn btn-secondary btn-sm"
-            onClick={onClose}
-            style={{ fontSize: '0.8rem', borderRadius: '8px' }}
-          >
-            Close Zoom
-          </button>
-        </div>
       </div>
     </div>
   );
