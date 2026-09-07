@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "0008_add_is_admin_to_users"
-down_revision: Union[str, None] = "0007_add_wallets_and_wallet_transactions"
+down_revision: Union[str, None] = "0007_add_wallets"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
