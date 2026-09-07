@@ -142,12 +142,9 @@ export const CardZoomModal = ({ isOpen, onClose, title, icon: Icon, children, su
             background: '#F9FAFB',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justifyContent: 'flex-end',
           }}
         >
-          <span style={{ fontSize: '0.78rem', color: '#9CA3AF' }}>
-            🔍 Zoom Focus View • Tap outside or press Esc to close
-          </span>
           <button 
             type="button" 
             className="btn btn-secondary btn-sm"
