@@ -19,6 +19,7 @@ export const HeroVibeCard = ({
   todaySpend = 0,
   budgetHealth = 80, // 0 to 100
   safeToSpendDaily = 500,
+  hasCustomDailyLimit = false,
   onOpenAddExpense,
   onOpenAIChat
 }) => {
@@ -72,9 +73,9 @@ export const HeroVibeCard = ({
   const clampedBurn = Math.min(Math.max(burnRatio, 5), 100);
 
   const getBurnIntensity = () => {
-    if (clampedBurn > 90) return { label: 'High Burn 🚨', color: '#DC2626' };
-    if (clampedBurn > 50) return { label: 'Moderate Burn 🔥', color: '#D97706' };
-    return { label: 'Chill Burn ⚡', color: '#16A34A' };
+    if (clampedBurn > 90) return { label: hasCustomDailyLimit ? 'Limit Breached 🚨' : 'High Burn 🚨', color: '#DC2626' };
+    if (clampedBurn > 50) return { label: hasCustomDailyLimit ? 'Moderate Spend 🔥' : 'Moderate Burn 🔥', color: '#D97706' };
+    return { label: hasCustomDailyLimit ? 'Under Daily Cap ⚡' : 'Chill Burn ⚡', color: '#16A34A' };
   };
 
   const burnInfo = getBurnIntensity();
@@ -152,7 +153,7 @@ export const HeroVibeCard = ({
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {showSafeToSpend ? 'Safe to Spend Today' : 'Total Spent This Month'}
+              {showSafeToSpend ? (hasCustomDailyLimit ? 'Remaining Today' : 'Safe to Spend Today') : 'Total Spent This Month'}
             </span>
             <button 
               type="button" 
@@ -172,7 +173,7 @@ export const HeroVibeCard = ({
               title="Toggle Safe-to-Spend view"
             >
               {showSafeToSpend ? <EyeOff size={14} /> : <Eye size={14} />}
-              <span>{showSafeToSpend ? 'Show Spent' : 'Safe to Spend'}</span>
+              <span>{showSafeToSpend ? 'Show Spent' : (hasCustomDailyLimit ? 'Daily Remaining' : 'Safe to Spend')}</span>
             </button>
           </div>
 
@@ -184,7 +185,7 @@ export const HeroVibeCard = ({
             </span>
             {showSafeToSpend && (
               <span style={{ fontSize: '0.85rem', color: '#16A34A', fontWeight: 700 }}>
-                / day
+                / today
               </span>
             )}
           </div>
@@ -205,9 +206,13 @@ export const HeroVibeCard = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Flame size={15} style={{ color: burnInfo.color }} />
+              {hasCustomDailyLimit ? (
+                <Zap size={15} style={{ color: burnInfo.color }} />
+              ) : (
+                <Flame size={15} style={{ color: burnInfo.color }} />
+              )}
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827' }}>
-                Daily Burn Rate
+                {hasCustomDailyLimit ? '⚡ Daily Limit Pace' : 'Daily Burn Rate'}
               </span>
             </div>
             <span style={{ fontSize: '0.76rem', fontWeight: 700, color: burnInfo.color }}>
@@ -243,7 +248,7 @@ export const HeroVibeCard = ({
 
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#6B7280' }}>
             <span>Today: {formatCurrency(todaySpend)}</span>
-            <span>Limit: {formatCurrency(safeToSpendDaily)}</span>
+            <span>{hasCustomDailyLimit ? 'Limit:' : 'Target:'} {formatCurrency(safeToSpendDaily)}</span>
           </div>
         </div>
       </div>

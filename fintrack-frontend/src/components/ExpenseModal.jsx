@@ -13,7 +13,8 @@ import {
   Zap, 
   Delete, 
   Hash, 
-  Tag 
+  Tag,
+  AlertTriangle 
 } from 'lucide-react';
 import { getTodayDateString } from '../utils/formatters';
 import { api } from '../api/client';
@@ -70,6 +71,20 @@ export const ExpenseModal = ({
 
   // Errors
   const [errors, setErrors] = useState({});
+
+  // Daily Spending Limit Info (for live warning)
+  const [dailyLimitInfo, setDailyLimitInfo] = useState(null);
+
+  useEffect(() => {
+    if (isOpen && !expense) {
+      api.budgets.list()
+        .then((res) => {
+          const daily = (res || []).find((b) => b.period === 'daily' && (b.category_id === null || b.category_id === undefined));
+          setDailyLimitInfo(daily || null);
+        })
+        .catch(() => setDailyLimitInfo(null));
+    }
+  }, [isOpen, expense]);
 
   useEffect(() => {
     if (expense) {
@@ -614,6 +629,38 @@ export const ExpenseModal = ({
                   required
                 />
                 {errors.amount && <p className="input-error-msg">{errors.amount}</p>}
+                
+                {/* Live Daily Limit Warning */}
+                {(() => {
+                  const parsedAmt = parseFloat(amount) || 0;
+                  if (!expense && dailyLimitInfo && parsedAmt > 0) {
+                    const spentSoFar = parseFloat(dailyLimitInfo.spent_amount) || 0;
+                    const limit = parseFloat(dailyLimitInfo.amount_limit) || 0;
+                    if (spentSoFar + parsedAmt > limit) {
+                      return (
+                        <div 
+                          style={{ 
+                            marginTop: '0.4rem', 
+                            fontSize: '0.74rem', 
+                            color: '#DC2626', 
+                            background: 'rgba(220, 38, 38, 0.08)',
+                            border: '1px solid rgba(220, 38, 38, 0.25)',
+                            padding: '3px 7px',
+                            borderRadius: '6px',
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '4px', 
+                            fontWeight: 600 
+                          }}
+                        >
+                          <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+                          <span>Exceeds daily limit of ₹{limit} (Spent today: ₹{spentSoFar})</span>
+                        </div>
+                      );
+                    }
+                  }
+                  return null;
+                })()}
               </div>
 
               <div className="form-group">

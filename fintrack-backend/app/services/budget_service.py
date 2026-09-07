@@ -1,7 +1,7 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 import calendar
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.repositories.budget_repository import BudgetRepository
@@ -20,7 +20,16 @@ class BudgetService:
 
     @classmethod
     def _enrich_budget_response(cls, db: Session, budget, user_id: int) -> BudgetResponse:
-        start_date, end_date = cls._get_current_month_date_range()
+        today = date.today()
+        if budget.period == "daily":
+            start_date = today
+            end_date = today
+        elif budget.period == "weekly":
+            start_date = today - timedelta(days=today.weekday())
+            end_date = start_date + timedelta(days=6)
+        else:
+            start_date, end_date = cls._get_current_month_date_range()
+
         spent = BudgetRepository.get_spent_amount(
             db=db,
             user_id=user_id,
@@ -29,6 +38,7 @@ class BudgetService:
             category_id=budget.category_id
         )
         remaining = budget.amount_limit - spent
+        percentage_spent = float(round((spent / budget.amount_limit * 100), 2)) if budget.amount_limit > 0 else 0.0
 
         # Determine budget health status
         if spent > budget.amount_limit:
@@ -38,7 +48,12 @@ class BudgetService:
         else:
             status_val = "on_track"
 
-        category_name = budget.category.name if budget.category else "Overall Monthly Budget"
+        if budget.category:
+            category_name = budget.category.name
+        elif budget.period == "daily":
+            category_name = "Overall Daily Limit"
+        else:
+            category_name = "Overall Monthly Budget"
 
         return BudgetResponse(
             id=budget.id,
@@ -48,12 +63,13 @@ class BudgetService:
             period=budget.period,
             spent_amount=spent,
             remaining_amount=remaining,
+            percentage_spent=percentage_spent,
             status=status_val,
             created_at=budget.created_at
         )
 
     @classmethod
-    def get_all_budgets(cls, db: Session, user_id: int, period: str = "monthly") -> List[BudgetResponse]:
+    def get_all_budgets(cls, db: Session, user_id: int, period: Optional[str] = None) -> List[BudgetResponse]:
         budgets = BudgetRepository.get_all(db, user_id=user_id, period=period)
         return [cls._enrich_budget_response(db, b, user_id=user_id) for b in budgets]
 

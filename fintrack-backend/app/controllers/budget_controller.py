@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from app.core.db import get_db
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/budgets", tags=["Budgets"])
 
 @router.get("", response_model=List[BudgetResponse])
 def get_budgets(
-    period: str = Query("monthly", description="Budget period (e.g. monthly)"),
+    period: Optional[str] = Query(None, description="Budget period (e.g. monthly, daily, or omit to get all)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

@@ -349,3 +349,66 @@ def test_ai_insights_and_provider_status(client):
     assert cat_data["confidence"] >= 0.5
 
 
+def test_daily_spending_limit(client):
+    # 1. Register & Login
+    _register_and_verify(client, email="daily_limit_user@example.com", password="Password123!")
+    login_res = client.post(
+        "/api/v1/auth/login",
+        json={"email": "daily_limit_user@example.com", "password": "Password123!"},
+    )
+    token = login_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 2. Create Overall Daily Spending Limit of Rs. 1000
+    budget_res = client.post(
+        "/api/v1/budgets",
+        headers=headers,
+        json={
+            "category_id": None,
+            "amount_limit": 1000.00,
+            "period": "daily",
+        },
+    )
+    assert budget_res.status_code == 201
+    budget_data = budget_res.json()
+    assert budget_data["period"] == "daily"
+    assert budget_data["category_name"] == "Overall Daily Limit"
+    assert float(budget_data["amount_limit"]) == 1000.00
+    assert float(budget_data["spent_amount"]) == 0.00
+    assert budget_data["status"] == "on_track"
+
+    # 3. Log an expense for today of Rs. 400
+    cats = client.get("/api/v1/categories", headers=headers).json()
+    pm_id = client.get("/api/v1/payment-methods").json()[0]["id"]
+    client.post(
+        "/api/v1/expenses",
+        headers=headers,
+        json={
+            "title": "Lunch",
+            "category_id": cats[0]["id"],
+            "payment_method_id": pm_id,
+            "amount": 400.00,
+            "date": date.today().isoformat(),
+        },
+    )
+
+    # 4. Fetch Budgets list with no period param (returns all)
+    all_budgets = client.get("/api/v1/budgets", headers=headers).json()
+    daily_b = next(b for b in all_budgets if b["period"] == "daily")
+    assert float(daily_b["spent_amount"]) == 400.00
+    assert float(daily_b["remaining_amount"]) == 600.00
+    assert daily_b["percentage_spent"] == 40.0
+    assert daily_b["status"] == "on_track"
+
+    # 5. Check Dashboard Summary returns today_spend and daily_budget
+    dash_res = client.get("/api/v1/dashboard/summary", headers=headers).json()
+    assert float(dash_res["today_spend"]) == 400.00
+    assert dash_res["daily_budget"] is not None
+    assert float(dash_res["daily_budget"]["limit"]) == 1000.00
+    assert float(dash_res["daily_budget"]["spent"]) == 400.00
+    assert float(dash_res["daily_budget"]["remaining"]) == 600.00
+    assert dash_res["daily_budget"]["percentage_spent"] == 40.0
+    assert dash_res["daily_budget"]["status"] == "on_track"
+
+
+

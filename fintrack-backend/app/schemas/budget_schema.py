@@ -24,6 +24,7 @@ class BudgetResponse(BudgetBase):
     category_name: Optional[str] = Field(None, description="Category name if linked to a specific category")
     spent_amount: Decimal = Field(default=Decimal("0.00"), description="Spent amount in current period")
     remaining_amount: Decimal = Field(default=Decimal("0.00"), description="Remaining budget balance")
+    percentage_spent: Optional[float] = Field(default=0.0, description="Percentage of budget limit spent")
     status: str = Field(default="on_track", description="Budget health: on_track, near_limit, or over_budget")
     created_at: datetime
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Target } from 'lucide-react';
+import { X, Target, Zap, Calendar } from 'lucide-react';
 
 export const BudgetModal = ({
   isOpen,
@@ -7,6 +7,7 @@ export const BudgetModal = ({
   onSave,
   categories = [],
   budget = null,
+  initialPeriod = 'monthly',
   isSaving,
 }) => {
   const [categoryId, setCategoryId] = useState('');
@@ -22,10 +23,10 @@ export const BudgetModal = ({
     } else {
       setCategoryId('');
       setAmountLimit('');
-      setPeriod('monthly');
+      setPeriod(initialPeriod || 'monthly');
     }
     setError('');
-  }, [budget, isOpen]);
+  }, [budget, isOpen, initialPeriod]);
 
   if (!isOpen) return null;
 
@@ -46,13 +47,15 @@ export const BudgetModal = ({
     onSave(payload);
   };
 
+  const isDaily = period === 'daily';
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Target size={18} color="var(--primary)" />
-            <h3>{budget ? 'Update Budget Goal' : 'Set New Budget Goal'}</h3>
+            {isDaily ? <Zap size={18} color="#D97706" /> : <Target size={18} color="var(--primary)" />}
+            <h3>{budget ? (isDaily ? 'Update Daily Limit' : 'Update Budget Goal') : (isDaily ? 'Set Daily Spending Limit' : 'Set New Budget Goal')}</h3>
           </div>
           <button className="btn btn-ghost btn-icon" onClick={onClose} aria-label="Close">
             <X size={18} />
@@ -61,6 +64,60 @@ export const BudgetModal = ({
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
+            {/* Period Selector Tabs */}
+            {!budget && (
+              <div className="form-group">
+                <label className="form-label">Limit Cycle / Period *</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setPeriod('daily')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: period === 'daily' ? '2px solid #D97706' : '1px solid #E5E7EB',
+                      background: period === 'daily' ? 'rgba(217, 119, 6, 0.08)' : '#FFFFFF',
+                      color: period === 'daily' ? '#D97706' : '#4B5563',
+                      fontWeight: period === 'daily' ? 700 : 500,
+                      cursor: 'pointer',
+                      fontSize: '0.825rem',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <Zap size={15} />
+                    <span>⚡ Daily Limit</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPeriod('monthly')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: period === 'monthly' ? '2px solid var(--primary)' : '1px solid #E5E7EB',
+                      background: period === 'monthly' ? 'rgba(59, 130, 246, 0.08)' : '#FFFFFF',
+                      color: period === 'monthly' ? 'var(--primary)' : '#4B5563',
+                      fontWeight: period === 'monthly' ? 700 : 500,
+                      cursor: 'pointer',
+                      fontSize: '0.825rem',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <Calendar size={15} />
+                    <span>🎯 Monthly Budget</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Scope / Category */}
             <div className="form-group">
               <label className="form-label" htmlFor="budget-scope">
@@ -73,8 +130,10 @@ export const BudgetModal = ({
                 onChange={(e) => setCategoryId(e.target.value)}
                 disabled={Boolean(budget)} // Cannot change category of existing budget
               >
-                <option value="">🎯 Overall Monthly Budget (All Categories)</option>
-                <optgroup label="Category-Specific Budgets">
+                <option value="">
+                  {isDaily ? '⚡ Overall Daily Spending Limit (All Expenses)' : '🎯 Overall Monthly Budget (All Categories)'}
+                </option>
+                <optgroup label="Category-Specific Limits">
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
                       🏷️ {c.name}
@@ -83,21 +142,23 @@ export const BudgetModal = ({
                 </optgroup>
               </select>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.25rem', display: 'block' }}>
-                Select "Overall" for entire monthly spending or pick a specific category.
+                {isDaily 
+                  ? 'Set an overall daily spending cap to stay on track day-by-day.' 
+                  : 'Select "Overall" for entire month spending or pick a specific category.'}
               </span>
             </div>
 
             {/* Amount Limit */}
             <div className="form-group">
               <label className="form-label" htmlFor="budget-limit">
-                Monthly Spending Limit (₹) *
+                {isDaily ? 'Daily Spending Limit (₹) *' : 'Monthly Spending Limit (₹) *'}
               </label>
               <input
                 id="budget-limit"
                 type="number"
                 step="0.01"
                 min="1"
-                placeholder="e.g. 25000"
+                placeholder={isDaily ? "e.g. 1000" : "e.g. 25000"}
                 className="form-input"
                 value={amountLimit}
                 onChange={(e) => {
@@ -115,7 +176,7 @@ export const BudgetModal = ({
               Cancel
             </button>
             <button type="submit" className="btn btn-primary" disabled={isSaving}>
-              {isSaving ? 'Saving...' : budget ? 'Update Budget' : 'Save Budget'}
+              {isSaving ? 'Saving...' : budget ? 'Update Limit' : isDaily ? 'Set Daily Limit' : 'Save Budget'}
             </button>
           </div>
         </form>
@@ -123,3 +184,4 @@ export const BudgetModal = ({
     </div>
   );
 };
+

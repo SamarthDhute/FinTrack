@@ -9,11 +9,14 @@ from app.models.expense import Expense
 
 class BudgetRepository:
     @staticmethod
-    def get_all(db: Session, user_id: int, period: str = "monthly") -> List[Budget]:
+    def get_all(db: Session, user_id: int, period: Optional[str] = None) -> List[Budget]:
+        conditions = [Budget.user_id == user_id]
+        if period is not None:
+            conditions.append(Budget.period == period)
         stmt = (
             select(Budget)
             .options(selectinload(Budget.category))
-            .where(and_(Budget.user_id == user_id, Budget.period == period))
+            .where(and_(*conditions))
             .order_by(Budget.category_id.nullsfirst())
         )
         return list(db.scalars(stmt).all())

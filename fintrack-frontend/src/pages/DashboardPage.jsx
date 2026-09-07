@@ -120,24 +120,42 @@ export const DashboardPage = ({ categories = [], onNavigateToExpenses, onOpenAdd
   const currentDay = new Date().getDate() || 1;
   const dailyAvg = currentMonthSpend / currentDay;
 
-  // Find today's spend from recent expenses
+  // Extract user-defined daily limit & monthly budget
+  const dailyBudget = summary?.daily_budget || budgets.find((b) => b.period === 'daily' && (b.category_id === null || b.category_id === undefined));
+  const overallBudget = summary?.overall_budget || budgets.find((b) => (b.period === 'monthly' || !b.period) && (b.category_id === null || b.category_id === undefined));
+
+  // Find today's spend from backend summary or recent expenses
   const todayStr = new Date().toISOString().split('T')[0];
-  const todaySpend = (summary?.recent_expenses || [])
-    .filter((e) => e.date && e.date.startsWith(todayStr))
-    .reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
+  const todaySpend = summary?.today_spend !== undefined 
+    ? parseFloat(summary.today_spend) 
+    : (summary?.recent_expenses || [])
+        .filter((e) => e.date && e.date.startsWith(todayStr))
+        .reduce((acc, curr) => acc + (parseFloat(curr.amount) || 0), 0);
 
-  // Calculate Budget Health (0 - 100)
-  const overallBudget = budgets.find((b) => b.category_id === null || b.category_id === undefined);
-  let budgetHealth = 85;
+  // Calculate safeToSpendDaily & Budget Health
   let safeToSpendDaily = 800;
+  let hasCustomDailyLimit = false;
 
-  if (overallBudget && overallBudget.amount_limit > 0) {
-    const remaining = overallBudget.amount_limit - overallBudget.spent_amount;
+  if (dailyBudget && (dailyBudget.limit || dailyBudget.amount_limit)) {
+    safeToSpendDaily = parseFloat(dailyBudget.limit || dailyBudget.amount_limit);
+    hasCustomDailyLimit = true;
+  } else if (overallBudget && (overallBudget.limit || overallBudget.amount_limit) > 0) {
+    const limit = parseFloat(overallBudget.limit || overallBudget.amount_limit);
+    const spent = parseFloat(overallBudget.spent || overallBudget.spent_amount || 0);
+    const remaining = limit - spent;
     const remainingDays = Math.max(daysInMonth - currentDay, 1);
     safeToSpendDaily = Math.max(remaining / remainingDays, 0);
-    budgetHealth = Math.max(100 - (overallBudget.percentage_spent || 0), 0);
   } else if (dailyAvg > 0) {
     safeToSpendDaily = dailyAvg * 1.1;
+  }
+
+  let budgetHealth = 85;
+  if (hasCustomDailyLimit && safeToSpendDaily > 0) {
+    const dailyRatio = (todaySpend / safeToSpendDaily) * 100;
+    budgetHealth = Math.max(Math.min(Math.round(100 - dailyRatio), 100), 0);
+  } else if (overallBudget && (overallBudget.limit || overallBudget.amount_limit) > 0) {
+    const pct = overallBudget.percentage_spent ?? ((overallBudget.spent / overallBudget.limit) * 100) ?? 0;
+    budgetHealth = Math.max(Math.min(Math.round(100 - pct), 100), 0);
   }
 
   // Find Top Category
@@ -147,7 +165,7 @@ export const DashboardPage = ({ categories = [], onNavigateToExpenses, onOpenAdd
 
   const overBudgetCategories = budgets
     .filter((b) => b.percentage_spent && b.percentage_spent >= 100)
-    .map((b) => b.category_name || 'Overall');
+    .map((b) => b.category_name || (b.period === 'daily' ? 'Daily Cap' : 'Overall'));
 
   return (
     <div style={{ paddingBottom: '90px' }}>
@@ -166,6 +184,7 @@ export const DashboardPage = ({ categories = [], onNavigateToExpenses, onOpenAdd
         todaySpend={todaySpend}
         budgetHealth={budgetHealth}
         safeToSpendDaily={safeToSpendDaily}
+        hasCustomDailyLimit={hasCustomDailyLimit}
         onOpenAddExpense={onOpenAddExpense}
         onOpenAIChat={onOpenAIChat}
       />

@@ -36,23 +36,27 @@ class DashboardService:
         # 2. Current month spend
         current_month_spend = BudgetRepository.get_spent_amount(db, user_id=user_id, start_date=current_start, end_date=current_end)
 
-        # 3. Previous month spend & % change
+        # 3. Today's spend
+        today_spend = BudgetRepository.get_spent_amount(db, user_id=user_id, start_date=today, end_date=today)
+
+        # 4. Previous month spend & % change
         prev_month_spend = BudgetRepository.get_spent_amount(db, user_id=user_id, start_date=prev_start, end_date=prev_end)
         if prev_month_spend > Decimal("0.00"):
             pct_change = round(((current_month_spend - prev_month_spend) / prev_month_spend) * 100, 2)
         else:
             pct_change = Decimal("0.00")
 
-        # 4. Recent 5 expenses
+        # 5. Recent 5 expenses
         recent_expenses, _ = ExpenseRepository.get_all(db, user_id=user_id, sort_by="date_desc", skip=0, limit=5)
         recent_list = [ExpenseService._to_response(e) for e in recent_expenses]
 
-        # 5. Overall budget info
+        # 6. Overall monthly budget info
         overall_budget = BudgetRepository.get_by_category(db, user_id=user_id, category_id=None, period="monthly")
         budget_summary = None
         if overall_budget:
             spent = current_month_spend
             remaining = overall_budget.amount_limit - spent
+            pct_spent = float(round((spent / overall_budget.amount_limit * 100), 2)) if overall_budget.amount_limit > 0 else 0.0
             if spent > overall_budget.amount_limit:
                 b_status = "over_budget"
             elif spent >= (overall_budget.amount_limit * Decimal("0.85")):
@@ -64,17 +68,43 @@ class DashboardService:
                 "limit": overall_budget.amount_limit,
                 "spent": spent,
                 "remaining": remaining,
+                "percentage_spent": pct_spent,
                 "status": b_status
+            }
+
+        # 7. Daily budget limit info (if configured)
+        daily_budget = BudgetRepository.get_by_category(db, user_id=user_id, category_id=None, period="daily")
+        daily_budget_summary = None
+        if daily_budget:
+            daily_spent = today_spend
+            daily_remaining = daily_budget.amount_limit - daily_spent
+            daily_pct = float(round((daily_spent / daily_budget.amount_limit * 100), 2)) if daily_budget.amount_limit > 0 else 0.0
+            if daily_spent > daily_budget.amount_limit:
+                d_status = "over_budget"
+            elif daily_spent >= (daily_budget.amount_limit * Decimal("0.85")):
+                d_status = "near_limit"
+            else:
+                d_status = "on_track"
+
+            daily_budget_summary = {
+                "id": daily_budget.id,
+                "limit": daily_budget.amount_limit,
+                "spent": daily_spent,
+                "remaining": daily_remaining,
+                "percentage_spent": daily_pct,
+                "status": d_status
             }
 
         return {
             "total_spend": all_time_spend,
             "all_time_spend": all_time_spend,
             "current_month_spend": current_month_spend,
+            "today_spend": today_spend,
             "previous_month_spend": prev_month_spend,
             "month_over_month_change_pct": pct_change,
             "recent_expenses": recent_list,
-            "overall_budget": budget_summary
+            "overall_budget": budget_summary,
+            "daily_budget": daily_budget_summary
         }
 
     @classmethod
