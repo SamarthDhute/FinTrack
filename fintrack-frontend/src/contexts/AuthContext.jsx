@@ -4,9 +4,22 @@ import { api, setAccessToken, setOnUnauthenticated } from '../api/client';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [token, setToken] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const cached = localStorage.getItem('fintrack_user');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [token, setToken] = useState(() => {
+    try {
+      return localStorage.getItem('fintrack_access_token') || null;
+    } catch {
+      return null;
+    }
+  });
+  const [isLoading, setIsLoading] = useState(!user);
 
   const logout = useCallback(async () => {
     try {
@@ -17,6 +30,10 @@ export function AuthProvider({ children }) {
       setAccessToken(null);
       setToken(null);
       setUser(null);
+      try {
+        localStorage.removeItem('fintrack_access_token');
+        localStorage.removeItem('fintrack_user');
+      } catch (_) {}
     }
   }, []);
 
@@ -29,6 +46,10 @@ export function AuthProvider({ children }) {
       setAccessToken(null);
       setToken(null);
       setUser(null);
+      try {
+        localStorage.removeItem('fintrack_access_token');
+        localStorage.removeItem('fintrack_user');
+      } catch (_) {}
     }
   }, []);
 
@@ -36,9 +57,26 @@ export function AuthProvider({ children }) {
     try {
       const profile = await api.auth.me();
       setUser(profile);
+      try {
+        localStorage.setItem('fintrack_user', JSON.stringify(profile));
+      } catch (_) {}
       return profile;
     } catch (err) {
       console.error('Failed to fetch user profile:', err);
+      // Try silent refresh before logging out
+      try {
+        const newAccessToken = await api.silentRefresh();
+        if (newAccessToken) {
+          setAccessToken(newAccessToken);
+          setToken(newAccessToken);
+          const p = await api.auth.me();
+          setUser(p);
+          try {
+            localStorage.setItem('fintrack_user', JSON.stringify(p));
+          } catch (_) {}
+          return p;
+        }
+      } catch (_) {}
       logout();
       return null;
     }
@@ -80,23 +118,32 @@ export function AuthProvider({ children }) {
           }
         }
 
-        // Silent refresh check using HttpOnly cookie
-        const newAccessToken = await api.silentRefresh();
-        if (newAccessToken) {
-          await handleAuthSuccess(newAccessToken);
+        const savedToken = localStorage.getItem('fintrack_access_token');
+        if (savedToken) {
+          setAccessToken(savedToken);
+          setToken(savedToken);
+          await fetchProfile();
+        } else {
+          // Silent refresh check using HttpOnly cookie
+          const newAccessToken = await api.silentRefresh();
+          if (newAccessToken) {
+            await handleAuthSuccess(newAccessToken);
+          }
         }
       } catch {
-        // Not logged in or expired cookie
-        setAccessToken(null);
-        setToken(null);
-        setUser(null);
+        // If not logged in
+        if (!localStorage.getItem('fintrack_access_token')) {
+          setAccessToken(null);
+          setToken(null);
+          setUser(null);
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     initAuth();
-  }, [handleAuthSuccess, logout]);
+  }, [handleAuthSuccess, logout, fetchProfile]);
 
   // Periodic silent refresh every 12 minutes (before 15m expiration)
   useEffect(() => {

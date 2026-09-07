@@ -62,8 +62,12 @@ export const Navbar = ({ activeTab, onSelectTab, onOpenAddExpense, onOpenChangeP
             handleTabClick('dashboard');
           }}
         >
-          <div className="brand-icon-wrapper">
-            <WalletCards size={20} />
+          <div className="brand-icon-wrapper" style={{ overflow: 'hidden', padding: 0, background: 'transparent' }}>
+            <img 
+              src="/app_icon.png" 
+              alt="FinTrack" 
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} 
+            />
           </div>
           <span>Fin<span className="brand-text-highlight">Track</span></span>
         </a>

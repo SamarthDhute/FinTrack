@@ -217,6 +217,7 @@ export const DebtsPage = () => {
       >
         {/* Card 1: To Receive (Maine Diye) */}
         <div
+          className="zoom-card-interactive"
           style={{
             background: '#FFFFFF',
             border: '1px solid #E5E7EB',
@@ -261,6 +262,7 @@ export const DebtsPage = () => {
 
         {/* Card 2: You Owe (Maine Liye) */}
         <div
+          className="zoom-card-interactive"
           style={{
             background: '#FFFFFF',
             border: '1px solid #E5E7EB',
@@ -305,6 +307,7 @@ export const DebtsPage = () => {
 
         {/* Card 3: Settlements Overview */}
         <div
+          className="zoom-card-interactive"
           style={{
             background: '#FFFFFF',
             border: '1px solid #E5E7EB',
@@ -468,13 +471,13 @@ export const DebtsPage = () => {
             return (
               <div
                 key={debt.id}
+                className="zoom-card-interactive"
                 style={{
                   background: '#FFFFFF',
                   border: isSettled ? '1px solid #E5E7EB' : isLent ? '1px solid #BBF7D0' : '1px solid #BFDBFE',
                   borderRadius: '16px',
                   padding: '1.25rem',
                   boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-                  transition: 'all 0.2s ease',
                 }}
               >
                 {/* Top Row: Person, Type Badge, Status, Actions */}

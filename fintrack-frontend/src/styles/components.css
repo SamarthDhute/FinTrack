@@ -554,7 +554,90 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 @keyframes pulseGlow {
   0%, 100% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.2); }
   50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
+}
+
+/* Silky Smooth Interactive Zoom Cards & Micro-Interactions */
+.zoom-card-interactive,
+.interactive-zoom-card {
+  cursor: pointer;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.2s ease,
+              background-color 0.2s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  will-change: transform, box-shadow;
+}
+
+.zoom-card-interactive:hover,
+.interactive-zoom-card:hover {
+  transform: translateY(-3px) scale(1.012);
+  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+  border-color: #CBD5E1 !important;
+}
+
+.zoom-card-interactive:active,
+.interactive-zoom-card:active {
+  transform: scale(0.985) translateY(0);
+  transition-duration: 0.08s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* Interactive List & Activity Feed Items */
+.activity-item-interactive {
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), 
+              background-color 0.18s ease, 
+              border-color 0.18s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.activity-item-interactive:hover {
+  transform: translateX(4px) scale(1.008);
+  background-color: #F3F4F6 !important;
+  border-color: #CBD5E1 !important;
+  box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.08);
+}
+
+.activity-item-interactive:active {
+  transform: scale(0.988);
+  transition-duration: 0.08s;
+}
+
+/* Subtle Zoom Badge Pill */
+.zoom-hint-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #6B7280;
+  background: rgba(243, 244, 246, 0.9);
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid #E5E7EB;
+  transition: all 0.15s ease;
+}
+
+.zoom-card-interactive:hover .zoom-hint-pill,
+.interactive-zoom-card:hover .zoom-hint-pill {
+  background: #3B82F6;
+  color: #FFFFFF;
+  border-color: #3B82F6;
 }

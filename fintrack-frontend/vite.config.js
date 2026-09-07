@@ -15,14 +15,20 @@ export default defineConfig({
       theme_color: "#0b0f19",
       icons: [
         {
-          src: "fintrack_icon.svg",
+          src: "/app_icon.png",
           sizes: "192x192",
-          type: "image/svg+xml"
+          type: "image/png"
         },
         {
-          src: "fintrack_icon.svg",
+          src: "/app_icon.png",
           sizes: "512x512",
-          type: "image/svg+xml"
+          type: "image/png"
+        },
+        {
+          src: "/app_icon.png",
+          sizes: "512x512",
+          type: "image/png",
+          purpose: "any maskable"
         }
       ]
     },

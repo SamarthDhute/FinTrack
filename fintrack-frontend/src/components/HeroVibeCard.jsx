@@ -152,8 +152,10 @@ export const HeroVibeCard = ({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', alignItems: 'center' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {showSafeToSpend ? (hasCustomDailyLimit ? 'Remaining Today' : 'Safe to Spend Today') : 'Total Spent This Month'}
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: showSafeToSpend && todaySpend > safeToSpendDaily ? '#DC2626' : '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {showSafeToSpend 
+                ? (todaySpend > safeToSpendDaily ? 'Extra Spent Today 🚨' : (hasCustomDailyLimit ? 'Remaining Today' : 'Safe to Spend Today')) 
+                : 'Total Spent This Month'}
             </span>
             <button 
               type="button" 
@@ -173,19 +175,28 @@ export const HeroVibeCard = ({
               title="Toggle Safe-to-Spend view"
             >
               {showSafeToSpend ? <EyeOff size={14} /> : <Eye size={14} />}
-              <span>{showSafeToSpend ? 'Show Spent' : (hasCustomDailyLimit ? 'Daily Remaining' : 'Safe to Spend')}</span>
+              <span>{showSafeToSpend ? 'Show Spent' : (todaySpend > safeToSpendDaily ? 'Extra Spent' : 'Safe to Spend')}</span>
             </button>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: 'clamp(1.75rem, 5.5vw, 2.5rem)', fontWeight: 800, fontFamily: 'var(--font-heading)', color: '#111827', letterSpacing: '-0.03em', lineHeight: 1.15 }}>
+            <span style={{ 
+              fontSize: 'clamp(1.75rem, 5.5vw, 2.5rem)', 
+              fontWeight: 800, 
+              fontFamily: 'var(--font-heading)', 
+              color: showSafeToSpend && todaySpend > safeToSpendDaily ? '#DC2626' : '#111827', 
+              letterSpacing: '-0.03em', 
+              lineHeight: 1.15 
+            }}>
               {showSafeToSpend 
-                ? formatCurrency(Math.max(safeToSpendDaily - todaySpend, 0)) 
+                ? (todaySpend > safeToSpendDaily 
+                    ? `+${formatCurrency(todaySpend - safeToSpendDaily)}` 
+                    : formatCurrency(safeToSpendDaily - todaySpend)) 
                 : formatCurrency(totalSpend)}
             </span>
             {showSafeToSpend && (
-              <span style={{ fontSize: '0.85rem', color: '#16A34A', fontWeight: 700 }}>
-                / today
+              <span style={{ fontSize: '0.85rem', color: todaySpend > safeToSpendDaily ? '#DC2626' : '#16A34A', fontWeight: 700 }}>
+                {todaySpend > safeToSpendDaily ? 'over cap' : '/ today'}
               </span>
             )}
           </div>

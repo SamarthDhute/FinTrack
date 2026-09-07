@@ -70,8 +70,12 @@ export default function AuthPage({ onForgotPasswordClick, onForgotPassword, onGo
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <div className="auth-logo">
-            <Sparkles size={24} />
+          <div className="auth-logo" style={{ overflow: 'hidden', padding: 0, background: 'transparent' }}>
+            <img 
+              src="/app_icon.png" 
+              alt="FinTrack" 
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} 
+            />
           </div>
           <h1 className="auth-title">FinTrack</h1>
           <p className="auth-subtitle">

@@ -124,25 +124,47 @@ export const CategoriesPage = ({ onRefreshGlobalData }) => {
 
       {/* Search Filter Toolbar */}
       <div
-        className="filter-bar card"
+        className="card"
         style={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '0.75rem',
-          padding: '0.75rem 1.15rem',
+          gap: '0.85rem',
+          padding: '0.85rem 1.25rem',
           marginBottom: '1.25rem',
+          background: '#FFFFFF',
+          border: '1px solid #E5E7EB',
+          borderRadius: '14px',
         }}
       >
-        <div className="search-input-wrapper" style={{ flex: '1 1 220px', width: '100%', maxWidth: '100%' }}>
-          <Search size={16} className="search-icon-inside" style={{ color: 'var(--text-dim)' }} />
+        <div style={{ position: 'relative', flex: '1 1 280px', width: '100%', maxWidth: '100%' }}>
+          <Search 
+            size={18} 
+            style={{ 
+              position: 'absolute', 
+              left: '12px', 
+              top: '50%', 
+              transform: 'translateY(-50%)', 
+              color: '#9CA3AF', 
+              pointerEvents: 'none' 
+            }} 
+          />
           <input
             type="text"
-            placeholder="Search categories or payment channels..."
+            placeholder="Search custom categories or payment channels..."
             className="form-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ paddingLeft: '2.25rem', paddingRight: search ? '2rem' : '0.75rem' }}
+            style={{ 
+              paddingLeft: '2.5rem', 
+              paddingRight: search ? '2.5rem' : '0.85rem', 
+              height: '42px',
+              borderRadius: '10px',
+              border: '1px solid #D1D5DB',
+              background: '#F9FAFB',
+              fontSize: '0.875rem'
+            }}
           />
           {search && (
             <button
@@ -150,23 +172,31 @@ export const CategoriesPage = ({ onRefreshGlobalData }) => {
               onClick={() => setSearch('')}
               style={{
                 position: 'absolute',
-                right: '0.6rem',
+                right: '10px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                background: 'transparent',
+                background: '#E5E7EB',
                 border: 'none',
-                color: 'var(--text-dim)',
+                borderRadius: '50%',
+                width: '22px',
+                height: '22px',
+                color: '#4B5563',
                 cursor: 'pointer',
                 display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                transition: 'background 0.15s ease',
               }}
+              title="Clear search"
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           )}
         </div>
         {search && (
-          <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
-            Found {filteredCategories.length} categories, {filteredPaymentMethods.length} payment channels
+          <span style={{ fontSize: '0.8rem', color: '#6B7280', fontWeight: 500 }}>
+            Showing <strong>{filteredCategories.length}</strong> categories, <strong>{filteredPaymentMethods.length}</strong> payment channels
           </span>
         )}
       </div>
@@ -179,7 +209,7 @@ export const CategoriesPage = ({ onRefreshGlobalData }) => {
       ) : (
         <div className="categories-split-view">
           {/* Custom Categories Card */}
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="card zoom-card-interactive" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <Tag size={20} color="var(--primary)" />
@@ -207,7 +237,7 @@ export const CategoriesPage = ({ onRefreshGlobalData }) => {
             ) : (
               <div>
                 {filteredCategories.map((cat) => (
-                  <div key={cat.id} className="list-item-row">
+                  <div key={cat.id} className="list-item-row activity-item-interactive">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <span className="badge badge-indigo">🏷️</span>
                       <div>
@@ -250,7 +280,7 @@ export const CategoriesPage = ({ onRefreshGlobalData }) => {
           </div>
 
           {/* Predefined Payment Methods Card */}
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="card zoom-card-interactive" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <CreditCard size={20} color="var(--secondary-accent)" />
@@ -271,7 +301,7 @@ export const CategoriesPage = ({ onRefreshGlobalData }) => {
             ) : (
               <div>
                 {filteredPaymentMethods.map((pm) => (
-                  <div key={pm.id} className="list-item-row">
+                  <div key={pm.id} className="list-item-row activity-item-interactive">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <span className="badge badge-emerald">💳</span>
                       <div>

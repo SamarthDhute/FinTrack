@@ -8,13 +8,28 @@ const RAW_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 const BASE_URL = typeof RAW_BASE_URL === 'string' ? RAW_BASE_URL.trim().replace(/\/+$/, '') : 'http://localhost:8000';
 const API_PREFIX = `${BASE_URL}/api/v1`;
 
-// In-memory access token (never stored in localStorage for security)
-let _accessToken = null;
+// Persistent access token storage
+let _accessToken = (() => {
+  try {
+    return localStorage.getItem('fintrack_access_token') || null;
+  } catch {
+    return null;
+  }
+})();
 let _refreshPromise = null;
 let _onUnauthenticated = null;
 
 export const setAccessToken = (token) => {
   _accessToken = token;
+  try {
+    if (token) {
+      localStorage.setItem('fintrack_access_token', token);
+    } else {
+      localStorage.removeItem('fintrack_access_token');
+    }
+  } catch (err) {
+    console.warn('Could not persist token in localStorage:', err);
+  }
 };
 
 export const getAccessToken = () => _accessToken;

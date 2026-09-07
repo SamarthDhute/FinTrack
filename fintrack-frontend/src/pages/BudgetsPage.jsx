@@ -182,7 +182,7 @@ export const BudgetsPage = ({ categories = [], onRefreshGlobalData }) => {
             {/* 1. Daily Limit Spotlight */}
             {dailyBudget ? (
               <div 
-                className="card" 
+                className="card zoom-card-interactive" 
                 style={{ 
                   border: '1px solid #E5E7EB',
                   borderLeft: '4px solid #D97706', 
@@ -240,11 +240,11 @@ export const BudgetsPage = ({ categories = [], onRefreshGlobalData }) => {
                         </div>
 
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            {isOver ? 'Over daily cap by' : 'Safe to spend today'}
+                          <div style={{ fontSize: '0.8rem', color: isOver ? 'var(--rose-danger)' : 'var(--text-muted)', fontWeight: isOver ? 700 : 500 }}>
+                            {isOver ? 'Extra Spent 🚨' : 'Remaining Today'}
                           </div>
-                          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1rem, 3vw, 1.2rem)', fontWeight: 700, color: isOver ? 'var(--rose-danger)' : 'var(--emerald-green)' }}>
-                            {formatCurrency(Math.abs(dailyBudget.remaining_amount))}
+                          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1rem, 3vw, 1.2rem)', fontWeight: 800, color: isOver ? 'var(--rose-danger)' : 'var(--emerald-green)' }}>
+                            {isOver ? `+${formatCurrency(dailyBudget.spent_amount - dailyBudget.amount_limit)}` : formatCurrency(dailyBudget.amount_limit - dailyBudget.spent_amount)}
                           </div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
                             Limit: {formatCurrency(dailyBudget.amount_limit)}/day
@@ -313,7 +313,7 @@ export const BudgetsPage = ({ categories = [], onRefreshGlobalData }) => {
             {/* 2. Monthly Budget Spotlight */}
             {overallMonthlyBudget ? (
               <div 
-                className="card" 
+                className="card zoom-card-interactive" 
                 style={{ 
                   border: '1px solid #E5E7EB',
                   borderLeft: '4px solid var(--primary)', 
@@ -371,11 +371,11 @@ export const BudgetsPage = ({ categories = [], onRefreshGlobalData }) => {
                         </div>
 
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            {isOver ? 'Over monthly limit by' : 'Remaining balance'}
+                          <div style={{ fontSize: '0.8rem', color: isOver ? 'var(--rose-danger)' : 'var(--text-muted)', fontWeight: isOver ? 700 : 500 }}>
+                            {isOver ? 'Extra Spent 🚨' : 'Remaining Budget'}
                           </div>
-                          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1rem, 3vw, 1.2rem)', fontWeight: 700, color: isOver ? 'var(--rose-danger)' : 'var(--emerald-green)' }}>
-                            {formatCurrency(Math.abs(overallMonthlyBudget.remaining_amount))}
+                          <div style={{ fontFamily: 'var(--font-heading)', fontSize: 'clamp(1rem, 3vw, 1.2rem)', fontWeight: 800, color: isOver ? 'var(--rose-danger)' : 'var(--emerald-green)' }}>
+                            {isOver ? `+${formatCurrency(overallMonthlyBudget.spent_amount - overallMonthlyBudget.amount_limit)}` : formatCurrency(overallMonthlyBudget.amount_limit - overallMonthlyBudget.spent_amount)}
                           </div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
                             Limit: {formatCurrency(overallMonthlyBudget.amount_limit)}
@@ -460,7 +460,7 @@ export const BudgetsPage = ({ categories = [], onRefreshGlobalData }) => {
                   const statusInfo = getBudgetStatusInfo(b.status, b.percentage_spent);
                   const isOver = (b.percentage_spent || 0) > 100;
                   return (
-                    <div key={b.id} className="card budget-card">
+                    <div key={b.id} className="card budget-card zoom-card-interactive">
                       <div>
                         <div className="budget-card-header">
                           <div>
@@ -517,11 +517,11 @@ export const BudgetsPage = ({ categories = [], onRefreshGlobalData }) => {
                             </div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                              {isOver ? 'Over by' : 'Left'}
+                            <div style={{ fontSize: '0.75rem', color: isOver ? 'var(--rose-danger)' : 'var(--text-dim)', fontWeight: isOver ? 700 : 500 }}>
+                              {isOver ? 'Extra Spent 🚨' : (b.period === 'daily' ? 'Remaining Today' : 'Remaining Budget')}
                             </div>
-                            <div style={{ fontWeight: 600, fontSize: '0.95rem', color: isOver ? 'var(--rose-danger)' : 'var(--emerald-green)' }}>
-                              {formatCurrency(Math.abs(b.remaining_amount))}
+                            <div style={{ fontWeight: 800, fontSize: '0.95rem', color: isOver ? 'var(--rose-danger)' : 'var(--emerald-green)' }}>
+                              {isOver ? `+${formatCurrency(b.spent_amount - b.amount_limit)}` : formatCurrency(b.amount_limit - b.spent_amount)}
                             </div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
                               Limit: {formatCurrency(b.amount_limit)}{b.period === 'daily' ? '/day' : ''}
