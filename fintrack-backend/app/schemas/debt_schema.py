@@ -1,4 +1,4 @@
-from datetime import date as dt_date, datetime as dt_datetime
+from datetime import date as dt_date, datetime as dt_datetime, timedelta
 from decimal import Decimal
 from typing import Optional, List
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -13,7 +13,7 @@ class DebtRepaymentBase(BaseModel):
     @field_validator("payment_date")
     @classmethod
     def validate_date_not_future(cls, v: dt_date) -> dt_date:
-        if v > dt_date.today():
+        if v > dt_date.today() + timedelta(days=1):
             raise ValueError("Repayment date cannot be in the future")
         return v
 

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
 from fastapi import HTTPException, status
@@ -96,8 +96,8 @@ class ExpenseService:
                 detail=f"Payment method with ID {data.payment_method_id} not found"
             )
 
-        # Validate date constraint
-        if data.date > date.today():
+        # Validate date constraint (allowing +1 day for international timezone differences)
+        if data.date > date.today() + timedelta(days=1):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Expense date cannot be in the future"
@@ -145,7 +145,7 @@ class ExpenseService:
                     detail=f"Payment method with ID {data.payment_method_id} not found"
                 )
 
-        if data.date is not None and data.date > date.today():
+        if data.date is not None and data.date > date.today() + timedelta(days=1):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Expense date cannot be in the future"
