@@ -9,6 +9,7 @@ from app.schemas.wallet_schema import (
     WalletUpdate,
     WalletResponse,
     WalletTransferCreate,
+    WalletDepositCreate,
     WalletTransactionResponse,
     WalletSummaryResponse,
 )
@@ -233,6 +234,35 @@ class WalletService:
         )
 
         return cls._format_transaction_response(tx_out)
+
+    @classmethod
+    def deposit_funds(
+        cls, db: Session, user_id: int, wallet_id: int, data: WalletDepositCreate
+    ) -> WalletTransactionResponse:
+        wallet = WalletRepository.get_by_id(db, wallet_id, user_id)
+        if not wallet:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Wallet with ID {wallet_id} not found"
+            )
+
+        # Increment wallet balance
+        WalletRepository.adjust_balance(db, wallet, data.amount)
+
+        desc = data.notes.strip() if data.notes else "Account Deposit / Top-up"
+
+        # Record Deposit in transaction ledger
+        tx = WalletRepository.create_transaction(
+            db=db,
+            wallet_id=wallet.id,
+            user_id=user_id,
+            transaction_type="DEPOSIT",
+            amount=data.amount,
+            description=desc,
+            transaction_date=data.deposit_date,
+        )
+
+        return cls._format_transaction_response(tx)
 
     @classmethod
     def get_wallet_transactions(

@@ -79,6 +79,19 @@ class WalletTransferCreate(BaseModel):
         return v
 
 
+class WalletDepositCreate(BaseModel):
+    amount: Decimal = Field(..., gt=0, decimal_places=2, description="Deposit/Top-up amount (must be positive)")
+    deposit_date: dt_date = Field(default_factory=dt_date.today, description="Date of deposit")
+    notes: Optional[str] = Field(None, max_length=500, description="Optional note/reason for adding money (e.g. Salary, Cashback, Top-up)")
+
+    @field_validator("deposit_date")
+    @classmethod
+    def validate_date_not_future(cls, v: dt_date) -> dt_date:
+        if v > dt_date.today() + timedelta(days=1):
+            raise ValueError("Deposit date cannot be in the future")
+        return v
+
+
 class WalletTransactionResponse(BaseModel):
     id: int
     wallet_id: int

@@ -9,6 +9,7 @@ from app.schemas.wallet_schema import (
     WalletUpdate,
     WalletResponse,
     WalletTransferCreate,
+    WalletDepositCreate,
     WalletTransactionResponse,
     WalletSummaryResponse,
 )
@@ -118,6 +119,19 @@ def transfer_funds(
     Transfer funds between two wallets with atomic balance updates and paired ledger logs.
     """
     return WalletService.transfer_funds(db=db, user_id=current_user.id, data=data)
+
+
+@router.post("/{wallet_id}/deposit", response_model=WalletTransactionResponse, status_code=status.HTTP_201_CREATED)
+def deposit_funds(
+    wallet_id: int,
+    data: WalletDepositCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Add funds / top up existing balance in a wallet with automatic ledger recording.
+    """
+    return WalletService.deposit_funds(db=db, user_id=current_user.id, wallet_id=wallet_id, data=data)
 
 
 @router.get("/{wallet_id}/transactions")

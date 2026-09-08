@@ -232,6 +232,7 @@ export const api = {
     update: (id, data) => request(`/wallets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id) => request(`/wallets/${id}`, { method: 'DELETE' }),
     transfer: (data) => request('/wallets/transfer', { method: 'POST', body: JSON.stringify(data) }),
+    deposit: (id, data) => request(`/wallets/${id}/deposit`, { method: 'POST', body: JSON.stringify(data) }),
     getTransactions: (id, params = {}) => {
       const searchParams = new URLSearchParams(params);
       const queryString = searchParams.toString();

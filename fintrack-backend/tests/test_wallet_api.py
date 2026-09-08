@@ -165,3 +165,45 @@ def test_expense_with_wallet_deduction(client):
 
     w_refunded = client.get(f"/api/v1/wallets/{w_id}", headers=headers).json()
     assert float(w_refunded["balance"]) == 10000.00
+
+
+def test_wallet_deposit_funds(client):
+    headers = _register_and_login(client, "wallet_user4@example.com", "Password123!")
+
+    # 1. Create a Wallet with ₹5,000
+    w_res = client.post(
+        "/api/v1/wallets",
+        json={"name": "Savings Stash", "wallet_type": "SAVINGS", "balance": 5000.00},
+        headers=headers,
+    )
+    w_id = w_res.json()["id"]
+
+    # 2. Deposit ₹2,500 extra money into the wallet
+    deposit_res = client.post(
+        f"/api/v1/wallets/{w_id}/deposit",
+        json={
+            "amount": 2500.00,
+            "deposit_date": str(date.today()),
+            "notes": "Salary bonus top-up",
+        },
+        headers=headers,
+    )
+    assert deposit_res.status_code == 201
+    tx_data = deposit_res.json()
+    assert tx_data["wallet_id"] == w_id
+    assert tx_data["transaction_type"] == "DEPOSIT"
+    assert float(tx_data["amount"]) == 2500.00
+    assert tx_data["description"] == "Salary bonus top-up"
+
+    # 3. Verify updated wallet balance is ₹7,500
+    w_updated = client.get(f"/api/v1/wallets/{w_id}", headers=headers).json()
+    assert float(w_updated["balance"]) == 7500.00
+
+    # 4. Verify transaction appears in wallet ledger
+    txs_res = client.get(f"/api/v1/wallets/{w_id}/transactions", headers=headers)
+    assert txs_res.status_code == 200
+    txs = txs_res.json()["items"]
+    deposit_tx = next((t for t in txs if t["description"] == "Salary bonus top-up"), None)
+    assert deposit_tx is not None
+    assert deposit_tx["transaction_type"] == "DEPOSIT"
+

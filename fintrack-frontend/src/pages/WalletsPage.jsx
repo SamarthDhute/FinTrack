@@ -27,6 +27,7 @@ import { useToast } from '../components/Toast';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { WalletModal } from '../components/WalletModal';
 import { WalletTransferModal } from '../components/WalletTransferModal';
+import { WalletDepositModal } from '../components/WalletDepositModal';
 
 const TYPE_CONFIG = {
   BANK: { label: 'Bank Account', icon: Building2, defaultBg: 'linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)' },
@@ -52,6 +53,10 @@ export const WalletsPage = ({ onRefreshGlobalData }) => {
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [transferFromWalletId, setTransferFromWalletId] = useState(null);
   const [isTransferring, setIsTransferring] = useState(false);
+
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [depositWalletId, setDepositWalletId] = useState(null);
+  const [isDepositing, setIsDepositing] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -138,6 +143,29 @@ export const WalletsPage = ({ onRefreshGlobalData }) => {
     setIsTransferModalOpen(true);
   };
 
+  const handleExecuteDeposit = async (walletId, payload) => {
+    try {
+      setIsDepositing(true);
+      await api.wallets.deposit(walletId, payload);
+      const targetWallet = wallets.find((w) => w.id === walletId);
+      success(`₹${payload.amount.toLocaleString('en-IN')} added to ${targetWallet?.name || 'account'} successfully! 💰`);
+      setIsDepositModalOpen(false);
+      setDepositWalletId(null);
+      fetchData();
+      if (onRefreshGlobalData) onRefreshGlobalData();
+    } catch (err) {
+      console.error('Deposit error:', err);
+      error(err.message || 'Failed to add money');
+    } finally {
+      setIsDepositing(false);
+    }
+  };
+
+  const openDepositModal = (walletId = null) => {
+    setDepositWalletId(walletId);
+    setIsDepositModalOpen(true);
+  };
+
   const netWorth = parseFloat(summary?.net_worth ?? 0);
   const totalLiquid = parseFloat(summary?.total_liquid_balance ?? 0);
   const totalCredit = parseFloat(summary?.total_credit_debt ?? 0);
@@ -165,6 +193,17 @@ export const WalletsPage = ({ onRefreshGlobalData }) => {
           >
             <RefreshCw size={16} className={isLoading ? 'spinner' : ''} />
             <span>Refresh</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => openDepositModal(null)}
+            disabled={wallets.length === 0}
+            style={{ borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#059669', borderColor: '#10B98133', background: '#10B98110' }}
+          >
+            <ArrowDownLeft size={16} color="#10B981" />
+            <span style={{ fontWeight: 600 }}>Add Money</span>
           </button>
 
           <button
@@ -422,29 +461,56 @@ export const WalletsPage = ({ onRefreshGlobalData }) => {
                       borderTop: '1px solid rgba(255, 255, 255, 0.2)',
                       marginTop: '1rem',
                       zIndex: 1,
+                      gap: '0.4rem',
+                      flexWrap: 'wrap',
                     }}
                   >
-                    <button
-                      type="button"
-                      onClick={() => openTransferFrom(w.id)}
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.2)',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '0.35rem 0.75rem',
-                        color: '#FFFFFF',
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                        backdropFilter: 'blur(8px)',
-                      }}
-                    >
-                      <ArrowRightLeft size={14} />
-                      <span>Transfer</span>
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => openDepositModal(w.id)}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.28)',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '0.35rem 0.65rem',
+                          color: '#FFFFFF',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          backdropFilter: 'blur(8px)',
+                        }}
+                        title="Add money to this account"
+                      >
+                        <Plus size={14} strokeWidth={2.5} />
+                        <span>Add Money</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => openTransferFrom(w.id)}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.18)',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '0.35rem 0.65rem',
+                          color: '#FFFFFF',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          backdropFilter: 'blur(8px)',
+                        }}
+                      >
+                        <ArrowRightLeft size={13} />
+                        <span>Transfer</span>
+                      </button>
+                    </div>
 
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
                       <button
@@ -625,6 +691,19 @@ export const WalletsPage = ({ onRefreshGlobalData }) => {
         wallets={wallets}
         initialFromWalletId={transferFromWalletId}
         isTransferring={isTransferring}
+      />
+
+      {/* Add Money / Deposit Modal */}
+      <WalletDepositModal
+        isOpen={isDepositModalOpen}
+        onClose={() => {
+          setIsDepositModalOpen(false);
+          setDepositWalletId(null);
+        }}
+        onDeposit={handleExecuteDeposit}
+        wallets={wallets}
+        initialWalletId={depositWalletId}
+        isDepositing={isDepositing}
       />
     </div>
   );
