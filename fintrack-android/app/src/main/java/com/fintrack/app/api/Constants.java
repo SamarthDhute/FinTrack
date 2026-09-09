@@ -15,8 +15,8 @@ public class Constants {
     // For Live Production Cloud (Render / Railway)
     public static final String PRODUCTION_BASE_URL = BuildConfig.PRODUCTION_BASE_URL;
 
-    // Default active Base URL: Production URL for release builds, local USB for debug builds
-    public static final String DEFAULT_BASE_URL = BuildConfig.DEBUG ? LOCAL_BASE_URL : PRODUCTION_BASE_URL;
+    // Default active Base URL: Production Cloud URL (no cable or local server needed)
+    public static final String DEFAULT_BASE_URL = PRODUCTION_BASE_URL;
     public static String BASE_URL = DEFAULT_BASE_URL;
 
     // Google OAuth Web Client ID for native token verification
