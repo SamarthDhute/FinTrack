@@ -1,7 +1,7 @@
 from datetime import date as dt_date, datetime as dt_datetime, timedelta
 from decimal import Decimal
 from typing import Optional, List, Dict
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class WalletBase(BaseModel):
@@ -64,6 +64,14 @@ class WalletTransferCreate(BaseModel):
     transfer_date: dt_date = Field(default_factory=dt_date.today, description="Date of transfer")
     notes: Optional[str] = Field(None, max_length=500, description="Optional description/notes for the transfer")
 
+    @model_validator(mode="before")
+    @classmethod
+    def handle_description_alias(cls, data):
+        if isinstance(data, dict):
+            if "notes" not in data and "description" in data:
+                data["notes"] = data["description"]
+        return data
+
     @field_validator("transfer_date")
     @classmethod
     def validate_date_not_future(cls, v: dt_date) -> dt_date:
@@ -83,6 +91,14 @@ class WalletDepositCreate(BaseModel):
     amount: Decimal = Field(..., gt=0, decimal_places=2, description="Deposit/Top-up amount (must be positive)")
     deposit_date: dt_date = Field(default_factory=dt_date.today, description="Date of deposit")
     notes: Optional[str] = Field(None, max_length=500, description="Optional note/reason for adding money (e.g. Salary, Cashback, Top-up)")
+
+    @model_validator(mode="before")
+    @classmethod
+    def handle_reason_alias(cls, data):
+        if isinstance(data, dict):
+            if "notes" not in data and "reason" in data:
+                data["notes"] = data["reason"]
+        return data
 
     @field_validator("deposit_date")
     @classmethod

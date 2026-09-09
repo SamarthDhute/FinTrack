@@ -65,3 +65,18 @@ class VerifyEmailRequest(BaseModel):
 
 class ResendVerificationRequest(BaseModel):
     email: EmailStr = Field(..., description="Email address to resend the verification link to")
+
+
+# ── Google Mobile OAuth ───────────────────────────────────────────────────────
+
+class GoogleMobileAuthRequest(BaseModel):
+    id_token: str = Field(..., description="Google ID Token from Google Play Services")
+
+
+class MobileAuthResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    csrf_token: str
+    user: Optional[UserResponse] = None
+    message: Optional[str] = "Authentication successful"

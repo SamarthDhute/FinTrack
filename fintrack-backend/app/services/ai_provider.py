@@ -1,5 +1,6 @@
 import json
 import re
+import datetime
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Optional
 import httpx
@@ -18,6 +19,7 @@ from app.schemas.ai_schema import (
     AIForecastResponse,
     AIGoalPlanResponse,
     CategoryCutback,
+    AIRoastResponse,
 )
 
 
@@ -38,6 +40,10 @@ class BaseAIProvider(ABC):
 
     @abstractmethod
     def scan_receipt_image(self, image_base64: str, mime_type: str, categories: List[Dict[str, Any]]) -> AIScanReceiptResponse:
+        pass
+
+    @abstractmethod
+    def generate_roast(self, context: Dict[str, Any]) -> AIRoastResponse:
         pass
 
 
@@ -250,6 +256,66 @@ class RuleBasedAIProvider(BaseAIProvider):
         
         top_cat = max(cat_totals, key=cat_totals.get) if cat_totals else "General"
         top_val = cat_totals.get(top_cat, 0.0)
+
+        # 0. Roast Mode ("Roast my spending", "ruthlessly", "burn", "roast", "kharche pe haso")
+        if any(w in msg_lower for w in ["roast", "ruthless", "ruthlessly", "burn", "jalana", "haso", "beizzati", "insult"]):
+            roast_res = self.generate_roast(context)
+            return AIChatResponse(
+                reply=f"{roast_res.roast}\n\n🔥 **Punchline:** {roast_res.punchline}",
+                quick_followups=["How can I save ₹5,000 this month?", "Where did I spend the most?", "Am I over budget?"],
+                provider_used="FinTrack AI Engine (Roast Mode)",
+            )
+
+        # 0b. Predict Month-End / Pacing Forecast
+        elif any(w in msg_lower for w in ["predict", "forecast", "month-end", "future", "estimate", "project"]):
+            today_day = max(1, datetime.date.today().day)
+            days_in_month = 30
+            daily_run_rate = total_spend / today_day
+            projected_total = daily_run_rate * days_in_month
+            alert_str = ""
+            if budget_status:
+                total_budget = sum(b.get("limit", 0) for b in budget_status if b.get("limit"))
+                if total_budget > 0:
+                    diff = projected_total - total_budget
+                    if diff > 0:
+                        alert_str = f"\n\n🚨 **Warning:** Projected spend exceeds active limits by **₹{diff:,.2f}**! Non-essential kharche thode hold karein."
+                    else:
+                        alert_str = f"\n\n✅ **On Track:** Current pace maintains a buffer of **₹{abs(diff):,.2f}** under your budget."
+            reply = (
+                f"🔮 **FinTrack Month-End Spend Projection:**\n\n"
+                f"• **Current Spend (Day {today_day}):** ₹{total_spend:,.2f}\n"
+                f"• **Current Run-Rate:** ₹{daily_run_rate:,.2f}/day\n"
+                f"• **Projected Month-End Spend:** ₹{projected_total:,.2f}{alert_str}\n\n"
+                f"💡 *Pacing Tip: Har din ₹{max(50.0, daily_avg * 0.85):,.0f} se kam spend karke aap easily month-end surplus bana sakte hain.*"
+            )
+            return AIChatResponse(
+                reply=reply,
+                quick_followups=["How can I save ₹5,000 this month?", "Where did I spend the most?", "Show recent transactions"],
+                provider_used="FinTrack AI Engine",
+            )
+
+        # 0c. Subscriptions & Recurring Fixed Commitments
+        elif any(w in msg_lower for w in ["subscription", "subscriptions", "recurring", "fixed", "ott", "commitments"]):
+            sub_candidates = [
+                s for s in (recent_samples or top_expenses)
+                if any(k in s.get("title", "").lower() for k in ["netflix", "spotify", "prime", "gym", "hotstar", "wifi", "jio", "airtel", "rent", "advance", "sip"])
+            ]
+            if sub_candidates:
+                lines = "\n".join([f"• 🔄 **{s['title']}**: ₹{s['amount']:,.2f} ({s.get('category', 'Subscription')})" for s in sub_candidates])
+                tot_sub = sum(s["amount"] for s in sub_candidates)
+                reply = (
+                    f"🔄 **Detected Recurring Subscriptions & Fixed Commitments:**\n\n"
+                    f"{lines}\n\n"
+                    f"• **Total Estimated Monthly Commitments:** ₹{tot_sub:,.2f}\n\n"
+                    f"💡 *Review Tip: Regularly audit streaming & gym memberships to ensure you only pay for active services.*"
+                )
+            else:
+                reply = "Aapke recent expenses me abhi koi recurring subscription (jaise Netflix, Spotify, Gym ya Rent) detect nahi hui hai."
+            return AIChatResponse(
+                reply=reply,
+                quick_followups=["How can I save ₹5,000 this month?", "Where did I spend the most?", "Am I over budget?"],
+                provider_used="FinTrack AI Engine",
+            )
 
         # 1. "Where did I spend the most?" / "Sabse zyada kahan kharch kiya?"
         if any(w in msg_lower for w in ["highest", "max", "sabse zyada", "sabse jyada", "sabse bada", "bada kharcha", "most", "top category", "top spend", "peak"]):
@@ -486,16 +552,38 @@ class RuleBasedAIProvider(BaseAIProvider):
             provider_used="Manual Review Required",
         )
 
+    def generate_roast(self, context: Dict[str, Any]) -> AIRoastResponse:
+        cat_totals = context.get("category_totals", {})
+        total_spend = sum(cat_totals.values())
+        top_cat = max(cat_totals, key=cat_totals.get) if cat_totals else "Everything"
+        top_amt = cat_totals.get(top_cat, 0.0)
+        recent_exps = context.get("recent_expenses", [])
+        top_title = recent_exps[0].get("title", "random items") if recent_exps else "unexplained expenses"
+
+        roast = (
+            f"🔥 **Bruh, let's talk about your bank account.**\n\n"
+            f"You spent **₹{total_spend:,.2f}** this month! Your single biggest vulnerability is **{top_cat}** at **₹{top_amt:,.2f}**.\n"
+            f"And buying *'{top_title}'*? Truly visionary financial planning! 📉\n"
+            f"Your wallet is literally screaming for mercy right now."
+        )
+        return AIRoastResponse(
+            roast=roast,
+            burn_level="Spicy 🔥🔥",
+            punchline=f"Spending ₹{total_spend:,.0f} like you're an Ambani, but your wallet says otherwise.",
+            top_culprit=top_cat,
+            provider_used="Rule-based Roaster",
+        )
+
 
 class GeminiAIProvider(BaseAIProvider):
-    """Google Gemini AI integration (gemini-3.5-flash / gemini-3.5-flash-lite)."""
+    """Google Gemini AI integration (gemini-3.5-flash-lite / gemini-3.6-flash)."""
 
-    def __init__(self, api_key: str, model_name: str = "gemini-3.5-flash"):
+    def __init__(self, api_key: str, model_name: str = "gemini-flash-lite-latest"):
         self.api_key = api_key
-        self.model_name = model_name or "gemini-3.5-flash"
+        self.model_name = model_name or "gemini-flash-lite-latest"
 
     def _call_gemini_json(self, system_instruction: str, user_prompt: str) -> Optional[Dict[str, Any]]:
-        models_to_try = [self.model_name, "gemini-3.5-flash", "gemini-3.5-flash-lite"]
+        models_to_try = [self.model_name, "gemini-flash-lite-latest", "gemini-3.1-flash-lite"]
         for m in dict.fromkeys(models_to_try):
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={self.api_key}"
             payload = {
@@ -508,7 +596,7 @@ class GeminiAIProvider(BaseAIProvider):
                 "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"}
             }
             try:
-                with httpx.Client(timeout=20.0) as client:
+                with httpx.Client(timeout=4.5) as client:
                     resp = client.post(url, json=payload)
                     if resp.status_code < 400:
                         data = resp.json()
@@ -520,6 +608,8 @@ class GeminiAIProvider(BaseAIProvider):
                                 clean_json = re.sub(r"^```(?:json)?\s*", "", raw.strip(), flags=re.IGNORECASE)
                                 clean_json = re.sub(r"\s*```$", "", clean_json)
                                 return json.loads(clean_json)
+                    else:
+                        print(f"[WARNING] Gemini model ({m}) returned HTTP {resp.status_code}: {resp.text[:120]}")
             except Exception as exc:
                 print(f"[WARNING] Gemini API attempt ({m}) error: {exc}")
         return None
@@ -557,56 +647,73 @@ class GeminiAIProvider(BaseAIProvider):
         return RuleBasedAIProvider().categorize_expense(title, amount, categories)
 
     def chat_with_advisor(self, message: str, history: List[Dict[str, str]], context: Dict[str, Any]) -> AIChatResponse:
-        models_to_try = [self.model_name, "gemini-3.5-flash", "gemini-3.5-flash-lite"]
-        system_text = (
-            "You are FinTrack AI, a helpful, intelligent personal financial advisor. "
-            "Answer the user's questions clearly using their live financial context below. "
+        system_instruction = (
+            "You are FinTrack AI, an intelligent, helpful and witty personal financial advisor for Indian users. "
+            "Answer the user's questions clearly using their live financial context provided. "
             "Support English, Hindi, and Hinglish seamlessly. Keep answers concise, friendly, accurate, and actionable. "
+            "If the user asks for a roast, be brutally savage and hilarious with Indian pop culture references! "
             "Format responses cleanly with Markdown bold numbers, bullet points, and emojis. "
-            "Return JSON matching schema: {'reply': 'markdown string with bold numbers', 'quick_followups': ['question1', 'question2']}\n\n"
-            f"User Financial Data Context:\n{json.dumps(context, indent=2)}"
+            "STRICT REQUIREMENT: Return valid JSON matching this schema:\n"
+            "{\n"
+            '  "reply": "Your full response in Markdown with bold numbers and emojis",\n'
+            '  "quick_followups": ["Follow-up question 1?", "Follow-up question 2?"]\n'
+            "}"
         )
 
-        # Build valid multi-turn contents
-        contents = []
+        conv_history = ""
         if history:
-            for h in history[-4:]:
-                role = "model" if h.get("role") == "assistant" else "user"
-                content_text = h.get("content", "")
-                if content_text:
-                    contents.append({"role": role, "parts": [{"text": content_text}]})
+            cleaned = [h for h in history[-4:] if h.get("content") and h.get("content") != message]
+            if cleaned:
+                conv_history = "Recent conversation context:\n" + "\n".join([
+                    f"{'User' if h.get('role') == 'user' else 'Assistant'}: {h.get('content')}"
+                    for h in cleaned
+                ]) + "\n\n"
 
-        # Append current user question with system context
-        if not contents:
-            contents.append({"role": "user", "parts": [{"text": f"{system_text}\n\nUser Question: {message}"}]})
-        else:
-            contents.append({"role": "user", "parts": [{"text": f"Context: {json.dumps(context)}\n\nUser Question: {message}"}]})
+        cat_totals = context.get("category_totals", {})
+        top_cats = ", ".join([f"{k}: ₹{v:,.0f}" for k, v in list(cat_totals.items())[:4]]) or "None"
+        recent_items = ", ".join([f"{e.get('title')}: ₹{e.get('amount')}" for e in context.get("recent_sample_transactions", [])[:5]]) or "None"
+        budgets_summary = ", ".join([f"{b.get('category_name')}: ₹{b.get('spent'):,.0f}/₹{b.get('limit'):,.0f}" for b in context.get("budget_status", [])[:4]]) or "No active budgets"
 
-        for m in dict.fromkeys(models_to_try):
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={self.api_key}"
-            try:
-                with httpx.Client(timeout=20.0) as client:
-                    resp = client.post(url, json={
-                        "contents": contents,
-                        "generationConfig": {"temperature": 0.3, "responseMimeType": "application/json"}
-                    })
-                    if resp.status_code < 400:
-                        raw = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
-                        clean_json = re.sub(r"^```(?:json)?\s*", "", raw.strip(), flags=re.IGNORECASE)
-                        clean_json = re.sub(r"\s*```$", "", clean_json)
-                        parsed = json.loads(clean_json)
-                        return AIChatResponse(
-                            reply=parsed.get("reply", ""),
-                            quick_followups=parsed.get("quick_followups", []),
-                            provider_used=f"Gemini ({m})",
-                        )
-            except Exception as exc:
-                print(f"[WARNING] Gemini chat attempt ({m}) error: {exc}")
+        compact_context = (
+            f"User: {context.get('user_name', 'User')}\n"
+            f"Total Spend (30d): ₹{context.get('total_spending_30d', 0):,.2f}\n"
+            f"Daily Average: ₹{context.get('daily_average_spend', 0):,.2f}\n"
+            f"Top Categories: {top_cats}\n"
+            f"Recent Expenses: {recent_items}\n"
+            f"Budgets: {budgets_summary}"
+        )
+
+        user_prompt = (
+            f"{conv_history}"
+            f"User Question: {message}\n\n"
+            f"Live Financial Summary:\n{compact_context}"
+        )
+
+        parsed = self._call_gemini_json(system_instruction, user_prompt)
+        if parsed and isinstance(parsed, dict):
+            reply_text = (
+                parsed.get("reply") or
+                parsed.get("response") or
+                parsed.get("message") or
+                parsed.get("roast") or
+                parsed.get("answer") or
+                parsed.get("text") or
+                ""
+            )
+            if reply_text and isinstance(reply_text, str) and reply_text.strip():
+                followups = parsed.get("quick_followups") or []
+                if not isinstance(followups, list):
+                    followups = []
+                return AIChatResponse(
+                    reply=reply_text.strip(),
+                    quick_followups=followups,
+                    provider_used=f"Google Gemini ({self.model_name})",
+                )
 
         return RuleBasedAIProvider().chat_with_advisor(message, history, context)
 
     def scan_receipt_image(self, image_base64: str, mime_type: str, categories: List[Dict[str, Any]]) -> AIScanReceiptResponse:
-        models_to_try = [self.model_name, "gemini-3.5-flash", "gemini-3.5-flash-lite"]
+        models_to_try = [self.model_name, "gemini-flash-lite-latest", "gemini-3.1-flash-lite", "gemini-3.7-flash"]
         cats_list = [{"id": c["id"], "name": c["name"]} for c in categories]
 
         prompt_text = (
@@ -659,7 +766,7 @@ class GeminiAIProvider(BaseAIProvider):
         for m in dict.fromkeys(models_to_try):
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={self.api_key}"
             try:
-                with httpx.Client(timeout=25.0) as client:
+                with httpx.Client(timeout=35.0) as client:
                     resp = client.post(url, json=payload)
                     if resp.status_code < 400:
                         data = resp.json()
@@ -742,6 +849,38 @@ class GeminiAIProvider(BaseAIProvider):
                 print(f"[WARNING] Gemini Vision receipt scanning ({m}) error: {exc}")
 
         return RuleBasedAIProvider().scan_receipt_image(image_base64, mime_type, categories)
+
+    def generate_roast(self, context: Dict[str, Any]) -> AIRoastResponse:
+        system_instruction = (
+            "You are a brutally hilarious, witty Indian personal finance roaster for FinTrack. "
+            "Roast the user's spending habits ruthlessly based on their exact spending amounts, categories, and recent transactions. "
+            "Incorporate hilarious Hinglish/English punchlines (e.g., 'wallet crying', 'kya kar raha hai bhai', 'crorepati vibes on a pocket-money budget', 'chai ke deewane'). "
+            "Keep it fun, accurate to the numbers, and savage with bold numbers and emojis. "
+            "Return STRICT VALID JSON matching:\n"
+            "{\n"
+            '  "roast": "2-3 short, punchy, savage paragraphs with bold numbers and emojis",\n'
+            '  "burn_level": "Mild 🔥"|"Spicy 🔥🔥"|"Nuclear 🔥🔥🔥",\n'
+            '  "punchline": "One brutal savage one-liner summary",\n'
+            '  "top_culprit": "Single main expense or category guilty of burning cash"\n'
+            "}"
+        )
+        parsed = self._call_gemini_json(system_instruction, f"User Spending Profile:\n{json.dumps(context, indent=2)}")
+        if parsed and "roast" in parsed:
+            return AIRoastResponse(
+                roast=parsed["roast"],
+                burn_level=parsed.get("burn_level", "Nuclear 🔥🔥🔥"),
+                punchline=parsed.get("punchline", "Your wallet is currently filing for bankruptcy."),
+                top_culprit=parsed.get("top_culprit"),
+                provider_used=f"Google Gemini ({self.model_name})",
+            )
+        # Fallback to chat_with_advisor with roast prompt
+        chat_res = self.chat_with_advisor("Roast my spending ruthlessly based on my latest expenses! Don't hold back!", [], context)
+        return AIRoastResponse(
+            roast=chat_res.reply,
+            burn_level="Spicy 🔥🔥",
+            punchline="Your wallet needs emergency CPR right now.",
+            provider_used=f"Google Gemini ({self.model_name})",
+        )
 
 
 class OpenAICompatibleProvider(BaseAIProvider):
@@ -852,6 +991,23 @@ class OpenAICompatibleProvider(BaseAIProvider):
         except Exception as exc:
             print(f"[WARNING] OpenAI vision error: {exc}")
         return RuleBasedAIProvider().scan_receipt_image(image_base64, mime_type, categories)
+
+    def generate_roast(self, context: Dict[str, Any]) -> AIRoastResponse:
+        system_prompt = (
+            "You are a brutally witty personal finance roaster. Roast the user's spending habits ruthlessly "
+            "based strictly on their actual numbers and transactions. Return STRICT JSON matching: "
+            "{\"roast\": \"2-3 punchy paragraphs with emojis and bold amounts\", \"burn_level\": \"Spicy 🔥🔥\", \"punchline\": \"Savage one-liner\", \"top_culprit\": \"Category or item\"}"
+        )
+        parsed = self._call_openai_json(system_prompt, f"User context:\n{json.dumps(context, indent=2)}")
+        if parsed and "roast" in parsed:
+            return AIRoastResponse(
+                roast=parsed["roast"],
+                burn_level=parsed.get("burn_level", "Nuclear 🔥🔥🔥"),
+                punchline=parsed.get("punchline", "Your wallet is weeping in a corner."),
+                top_culprit=parsed.get("top_culprit"),
+                provider_used=f"OpenAI Compatible ({self.model_name})",
+            )
+        return RuleBasedAIProvider().generate_roast(context)
 
 
 def get_ai_provider() -> BaseAIProvider:

@@ -132,3 +132,13 @@ class AIGoalPlanResponse(BaseModel):
     total_current_monthly_spend: float
     category_cutbacks: List[CategoryCutback] = Field(default_factory=list)
     strategy_summary: str
+
+
+# ── AI Spending Roast ─────────────────────────────────────────────────────────
+class AIRoastResponse(BaseModel):
+    roast: str
+    burn_level: str = "Spicy 🔥"
+    punchline: Optional[str] = None
+    top_culprit: Optional[str] = None
+    generated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    provider_used: str = "Google Gemini"

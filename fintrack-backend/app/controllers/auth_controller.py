@@ -1,3 +1,4 @@
+import httpx
 from typing import Optional
 from authlib.integrations.starlette_client import OAuth
 from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Header, HTTPException, Request, Response, status
@@ -13,7 +14,9 @@ from app.models.user import User
 from app.schemas.auth_schema import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
+    GoogleMobileAuthRequest,
     LoginRequest,
+    MobileAuthResponse,
     RegisterRequest,
     ResetPasswordRequest,
     ResendVerificationRequest,
@@ -348,3 +351,91 @@ async def google_callback(
     resp = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
     _set_auth_cookies(resp, raw_rt, token_resp.csrf_token)
     return resp
+
+
+@router.post(
+    "/google/mobile",
+    response_model=MobileAuthResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Authenticate or register user via Google Mobile ID Token",
+)
+async def google_mobile_auth(
+    request: Request,
+    response: Response,
+    data: GoogleMobileAuthRequest,
+    db: Session = Depends(get_db),
+):
+    if not settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Google Sign-In is not configured on this server.",
+        )
+
+    # Verify ID Token with Google OAuth2 TokenInfo API
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://oauth2.googleapis.com/tokeninfo",
+                params={"id_token": data.id_token},
+            )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Failed to reach Google token verification service: {str(exc)}",
+        )
+
+    if resp.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired Google ID token.",
+        )
+
+    token_data = resp.json()
+
+    # Validate issuer
+    issuer = token_data.get("iss")
+    if issuer not in ("accounts.google.com", "https://accounts.google.com"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid Google token issuer: {issuer}",
+        )
+
+    # Validate audience
+    # aud should match the server's Google Client ID (the Web Client ID that Android requested the token for)
+    aud = token_data.get("aud")
+    if aud != settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google token audience mismatch.",
+        )
+
+    email = token_data.get("email")
+    google_id = token_data.get("sub")
+    display_name = token_data.get("name") or token_data.get("given_name")
+
+    if not email or not google_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Google token missing required profile information (email or subject).",
+        )
+
+    device_hint = request.headers.get("User-Agent", "Android")[:100]
+    token_resp, raw_rt, user = AuthService.handle_google_user(
+        db=db,
+        email=email,
+        google_id=google_id,
+        display_name=display_name,
+        device_hint=device_hint,
+    )
+
+    _set_auth_cookies(response, raw_rt, token_resp.csrf_token)
+
+    return MobileAuthResponse(
+        access_token=token_resp.access_token,
+        token_type=token_resp.token_type,
+        expires_in=token_resp.expires_in,
+        csrf_token=token_resp.csrf_token,
+        user=UserResponse.model_validate(user),
+        message="Google sign-in successful",
+    )
+

@@ -17,6 +17,7 @@ from app.schemas.ai_schema import (
     AIForecastResponse,
     AIGoalPlanRequest,
     AIGoalPlanResponse,
+    AIRoastResponse,
 )
 from app.services.ai_service import AIService
 
@@ -162,3 +163,22 @@ def get_provider_status(
         "model_name": settings.AI_MODEL_NAME,
         "is_ai_enabled": has_gemini or has_openai or bool(settings.AI_BASE_URL),
     }
+
+
+@router.post(
+    "/roast",
+    response_model=AIRoastResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Generate brutal AI spending roast with Google Gemini",
+)
+@router.get(
+    "/roast",
+    response_model=AIRoastResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Generate brutal AI spending roast with Google Gemini",
+)
+def get_spending_roast(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return AIService.generate_roast(db=db, user=current_user)

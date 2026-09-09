@@ -20,6 +20,7 @@ from app.schemas.ai_schema import (
     AIForecastResponse,
     AIGoalPlanResponse,
     CategoryCutback,
+    AIRoastResponse,
 )
 
 
@@ -305,3 +306,10 @@ class AIService:
             category_cutbacks=cutbacks,
             strategy_summary=summary,
         )
+
+    @staticmethod
+    def generate_roast(db: Session, user: User) -> AIRoastResponse:
+        """Generate a ruthless, witty spending roast using Google Gemini."""
+        context = AIService._build_user_financial_context(db, user)
+        provider = get_ai_provider()
+        return provider.generate_roast(context)

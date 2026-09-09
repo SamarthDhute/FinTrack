@@ -67,7 +67,7 @@ class Settings(BaseSettings):
 
     # ── AI Insights Settings (Provider: "gemini", "openai", "groq", "deepseek", "ollama", "rules", "auto") ──
     AI_PROVIDER: str = "auto"
-    AI_MODEL_NAME: str = "gemini-3.5-flash"
+    AI_MODEL_NAME: str = "gemini-flash-lite-latest"
     GEMINI_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
     AI_BASE_URL: str = ""

@@ -1,21 +1,21 @@
 # FinTrack — Project Progress & Status Report
 
-**Last Updated:** September 3, 2026  
-**Status:** Phase 1 (MVP) ✅ | Phase 2 (Authentication & Security) ✅ | Phase 3 (10 AI Super-Features Suite) ✅ Complete, Polished & Fully Tested
+**Last Updated:** September 8, 2026  
+**Status:** Phase 1 (MVP) ✅ | Phase 2 (Authentication & Security) ✅ | Phase 3 (10 AI Super-Features Suite) ✅ | Phase 4 (Multi-Wallet & Debts Ledger System) ✅ Complete, Polished & Fully Tested
 
 ---
 
 ## 📌 Executive Summary
 
-FinTrack is an AI-powered personal expense tracking and financial intelligence web application with JWT authentication, zero vendor lock-in multi-model AI, and complete user data isolation:
+FinTrack is a full-featured, AI-powered personal expense tracking and financial intelligence web application with JWT authentication, zero vendor lock-in multi-model AI, multi-account ledger management, debt tracking, and complete user data isolation:
 - **Backend:** FastAPI + SQLAlchemy 2.x + PostgreSQL (Supabase pooler / local) + Alembic + Pydantic v2 + Multi-Provider Email Relay (Brevo/Gmail/Resend) + Multi-Model AI Engine (Gemini 3.5 / OpenAI / Groq / DeepSeek / Ollama / Rules Heuristics)
-- **Frontend:** React 18 + Vite 6 + Vanilla CSS Design System + PWA + AI Financial Assistant Drawer & Inline Tools + In-Memory Token Management
+- **Frontend:** React 18 + Vite 6 + Vanilla CSS Design System + PWA + AI Financial Assistant Drawer & Inline Tools + Multi-Wallet Ledger & Top-Up Suite + In-Memory Token Management
 
 Both follow strict architectural boundaries. Backend enforces **Controller → Service → Repository → Model** (`AGENTS.md` compliant).
 
 ---
 
-## ✅ Completed Tasks & Recent Fixes
+## ✅ Completed Tasks & Milestone Features
 
 ### Phase 1 (MVP) — Core Loop ✅
 - [x] Full CRUD on expenses, dynamic categories, and budgets.
@@ -42,12 +42,8 @@ Both follow strict architectural boundaries. Backend enforces **Controller → S
 - [x] **4. 💬 Natural Language Financial Chatbot (`POST /api/v1/ai/chat` + `AIChatDrawer.jsx`):**
   - Multilingual AI assistant (Hindi, English, Hinglish) with live user context (MoM change, budgets, category distribution, top expenses).
   - Floating drawer with `Ctrl+K` shortcut, voice dictation (Web Speech API), expand/compact view, copy-to-clipboard, auto-scroll.
-  - Removed redundant duplicate chat widget on dashboard to provide a unified floating assistant experience.
 - [x] **5. 📷 Receipt / Bill Scanner (`POST /api/v1/ai/scan-receipt` + `ExpenseModal.jsx`):**
-  - Upgraded Vision OCR to active `gemini-3.5-flash` / `gemini-3.5-flash-lite` models.
-  - Robust extraction and sanitization for merchant name, total payable amount, ISO date (`YYYY-MM-DD`), matching category, and payment method.
-  - Frontend UI displays uploaded receipt thumbnail image preview and scan verification status.
-  - Safe fallback to avoid false dummy charges when image is unreadable.
+  - Vision OCR powered by `gemini-3.5-flash`. Robust extraction of merchant, amount, ISO date, matching category, and payment method.
 - [x] **6. 🛡️ Financial Health Score (0-100):**
   - Visual health score gauge with status (Excellent, Good, Needs Attention, Critical).
 - [x] **7. 🔮 Predictive Month-End Forecasting (`GET /api/v1/ai/forecast`):**
@@ -58,10 +54,49 @@ Both follow strict architectural boundaries. Backend enforces **Controller → S
   - Automatic detection of Netflix, Spotify, gym, rent, and recurring monthly burn.
 - [x] **10. 🎯 Goal-Based Savings Planner (`POST /api/v1/ai/goal-plan`):**
   - Interactive simulator (*"Save ₹50,000 in 6 months"*) with category cutback breakdown and feasibility scoring.
-- [x] **11. 🖥️ Dashboard Page Integrity:**
-  - Restored missing component imports (`TimeRangeSelector`, `CategoryFilter`, `RefreshButton`) ensuring 0 runtime errors and smooth UI rendering.
+
+### Phase 4 — Multi-Wallet Management, Add Money Top-Up & Debts Ledger ✅
+- [x] **💳 Multi-Account & Wallets (`/wallets`):**
+  - Support for multiple account types: Bank, Cash in Hand, UPI / Wallet, Credit Card, Savings / Deposits, and Custom Accounts.
+  - Auto-seeding of default accounts (*Main Bank Account*, *Cash in Hand*) on initial user onboarding.
+  - Live Net Worth calculation (Liquid funds minus Credit card liabilities).
+- [x] **💰 Add Money / Top-Up to Existing Balance (`POST /api/v1/wallets/{wallet_id}/deposit`):**
+  - Quick amount suggestion chips (`+₹500`, `+₹1k`, `+₹2k`, `+₹5k`, `+₹10k`, `+₹25k`).
+  - Real-time **New Balance Preview** calculation.
+  - Quick reason tags (`Monthly Salary`, `Bonus / Incentive`, `Cash Deposit`, `Cashback / Refund`, `Freelance`, `Pocket Money`).
+  - Automatic ledger tracking (`DEPOSIT`) in transaction log.
+  - Dedicated header & wallet card top-up buttons in UI.
+- [x] **⚡ Inter-Account Money Transfers (`POST /api/v1/wallets/transfer`):**
+  - Atomic transfers between any two accounts with linked double-entry transaction history (`TRANSFER_IN`, `TRANSFER_OUT`).
+- [x] **🔗 Expense Deduction & Refund Integration:**
+  - Creating an expense linked to a wallet automatically deducts balance.
+  - Deleting/modifying an expense refunds/adjusts the source account balance automatically.
+- [x] **🤝 Debts & Udhaar Tracker (`/debts`):**
+  - Complete tracking for money lent (Receivable) and money borrowed (Payable) with partial repayment logging.
+
+### Phase 5 — Native Java Android App & Live Deployment Configuration ✅
+- [x] **☕ Pure Java Native App Scaffolding (`fintrack-android/`):**
+  - Configured Gradle 8.4 + Java 17/22 compatibility without requiring heavy Android Studio.
+- [x] **📱 Native Android Core Architecture:**
+  - Setup Material Design 3 theme, Emerald/Dark Slate UI tokens, and vector drawables.
+  - Setup Retrofit 2 + OkHttp + Gson API layer with automatic Bearer token injection (`AuthInterceptor`).
+  - Added session persistence and Biometric Authentication (`AndroidX BiometricPrompt`).
+- [x] **📱 Native Android Screens & 5-Tab Material Navigation:**
+  - `BottomNavigationView` with 5 dedicated AndroidX Fragments:
+    1. `HomeFragment`: Net Worth card, liquid vs credit dues, quick action buttons, wallets carousel, recent expenses.
+    2. `ExpensesFragment`: Live search filter, category filter spinner, complete expenses list, FAB to add expense, long-press to delete with wallet refund.
+    3. `WalletsFragment`: Accounts management, `+ Account` creation, `Top-Up`, `Transfer Between Accounts`, and Global Transaction History Ledger.
+    4. `BudgetsFragment`: Monthly & category spending limits, dynamic progress bars, color-coded health badges (*On Track*, *Near Limit*, *Over Budget*), budget deletion.
+    5. `DebtsFragment`: Udhaar tracking, You Lent vs You Borrowed summary cards, All/Lent/Borrowed/Settled filtering, Add Debt modal, Record Repayment dialog.
+  - **AI Financial Assistant Modal (`AIChatDialog.java`):** Multilingual conversational AI chatbot accessible via top header "✨ Ask AI" button.
+  - **Account & Security Settings:** In-app Change Password dialog and dynamic Server URL/IP configuration.
+- [x] **🌐 Live Production Deployment Configurations:**
+  - `fintrack-backend/render.yaml` & `Dockerfile` configured for Render.com automated deployment with dynamic cloud `$PORT` support.
+  - `fintrack-frontend/vercel.json` configured for Vercel SPA routing.
+  - `fintrack-android/README.md` complete guide for USB debugging, port reversal (`adb reverse`), and APK compilation.
 
 ---
+
 
 ## 📡 Active API Endpoints Reference
 
@@ -79,6 +114,24 @@ Both follow strict architectural boundaries. Backend enforces **Controller → S
 | | `POST` | `/api/v1/auth/forgot-password` | No | Send 1-hour password reset link |
 | | `POST` | `/api/v1/auth/reset-password` | No | Reset password with signed token |
 | | `POST` | `/api/v1/auth/change-password` | Bearer Token | Change password with current password check |
+| **Wallets & Accounts** | `GET` | `/api/v1/wallets/summary` | Bearer Token | Aggregated balance, net worth & credit dues |
+| | `GET` | `/api/v1/wallets` | Bearer Token | List all user wallets |
+| | `POST` | `/api/v1/wallets` | Bearer Token | Create new wallet / account |
+| | `GET` | `/api/v1/wallets/{id}` | Bearer Token | Get wallet details |
+| | `PUT` | `/api/v1/wallets/{id}` | Bearer Token | Update wallet properties/balance |
+| | `DELETE` | `/api/v1/wallets/{id}` | Bearer Token | Delete wallet & associated ledger |
+| | `POST` | `/api/v1/wallets/{id}/deposit` | Bearer Token | **Top-up / Add money to existing balance** |
+| | `POST` | `/api/v1/wallets/transfer` | Bearer Token | Transfer funds between accounts |
+| | `GET` | `/api/v1/wallets/{id}/transactions`| Bearer Token | Get ledger transactions for a wallet |
+| | `GET` | `/api/v1/wallets/transactions/all` | Bearer Token | Global transaction ledger history |
+| **Debts & Udhaar** | `GET` | `/api/v1/debts/summary` | Bearer Token | Lent vs borrowed debt summary |
+| | `GET` | `/api/v1/debts` | Bearer Token | List all debt records |
+| | `POST` | `/api/v1/debts` | Bearer Token | Create new debt record |
+| | `GET` | `/api/v1/debts/{id}` | Bearer Token | Get debt details |
+| | `PUT` | `/api/v1/debts/{id}` | Bearer Token | Edit debt |
+| | `DELETE` | `/api/v1/debts/{id}` | Bearer Token | Delete debt record |
+| | `POST` | `/api/v1/debts/{id}/repayments` | Bearer Token | Add partial/full repayment log |
+| | `DELETE` | `/api/v1/debts/{id}/repayments/{r_id}` | Bearer Token | Delete repayment log |
 | **AI Intelligence** | `POST` | `/api/v1/ai/insights` | Bearer Token | Financial health score & budget recommendations |
 | | `POST` | `/api/v1/ai/categorize` | Bearer Token | Real-time smart auto-categorization |
 | | `POST` | `/api/v1/ai/chat` | Bearer Token | Conversational financial QA chatbot |
@@ -111,8 +164,45 @@ Both follow strict architectural boundaries. Backend enforces **Controller → S
 
 ## 🧪 Verification & Build Status
 
+- **Backend Pytest (`tests/test_wallet_api.py`):** **4 / 4 PASSED (100%)**
 - **Backend Pytest (`tests/test_api.py`):** **8 / 8 PASSED (100%)**
-- **Frontend Production Bundle (`npm run build`):** **✓ Built in 4.93s, 0 errors.**
+- **Backend Pytest (`tests/test_debt_api.py`):** **Passed (100%)**
+- **Frontend Production Bundle (`npm run build`):** **✓ Built cleanly in 16.59s, 0 errors.**
+- **Android Production Build (`assembleRelease` & `bundleRelease`):** **✓ Built cleanly (Release APK: 3.98 MB, Play Store AAB: 5.01 MB)**
 - **Live Local Servers:**
   - Frontend: `http://localhost:3000` (Vite)
-  - Backend: `http://127.0.0.1:8000` (FastAPI)
+  - Backend: `http://127.0.0.1:8000` (FastAPI daemon)
+  - Connected Android Device: `RZCW829E32F` (ADB reverse port forwarded on 8000)
+- **Live Cloud Deployment:**
+  - Render URL: `https://fintrack-5wdf.onrender.com` (Status: Healthy)
+
+---
+
+## 📱 Phase 5 & 6 — Native Android Application & Production Release ✅
+
+- [x] **Full Native Android App (`fintrack-android`):**
+  - Built with native Java 17, Material 3, AndroidX Biometrics, Retrofit 2, OkHttp 3, Gson, and MPAndroidChart.
+  - Complete parity with Web App: Home dashboard, Expenses CRUD, Dynamic Categories, Budgets, Multi-Wallets & Top-Up, Debts Ledger, and Biometric / Fingerprint authentication.
+- [x] **Production Release Hardening & Artifacts:**
+  - Generated dedicated production keystore (`fintrack-release.jks`).
+  - Minified and optimized with R8 & ProGuard rules down to **3.98 MB** APK.
+  - Built Google Play Store ready App Bundle: `app-release.aab` (**5.01 MB**).
+  - Production SHA-1 registered for Google Cloud OAuth: `D5:C7:D3:42:89:11:B7:72:22:A2:18:5A:2D:C7:9F:18:03:C4:D1:84`.
+
+---
+
+## 🧠 Phase 7 — 10 AI Intelligence Features on Android ✅
+
+- [x] **1. Smart Auto-Categorization:** Real-time debounced suggestion badge in `AddExpenseActivity`.
+- [x] **2. AI Budget Suggestions:** Contextual category limits in `AIHubActivity`.
+- [x] **3. Anomaly & Overspending Alerts:** Spike warnings and budget breach insights.
+- [x] **4. Receipt / Bill Scanner (OCR):** Camera & gallery receipt scanner with automatic field auto-fill.
+- [x] **5. Financial Health Score:** 0-100 gauge with status badges (*Living Large*, *Needs Attention*, *Critical*).
+- [x] **6. Predictive Month-End Forecasting:** Daily run-rate and month-end projection.
+- [x] **7. Personalized Saving Tips:** Tailored cutback advice.
+- [x] **8. Subscription & Recurring Detector:** Fixed commitment detection and monthly burn rate.
+- [x] **9. Goal-Based Savings Planner:** Custom target & timeline simulator with cutback recommendations.
+- [x] **10. AI Chat with Roast Mode & Dashboard Integration:**
+  - Contextual chatbot with quick prompt chips: **🔥 Roast My Spending**, **💡 Save ₹5,000**, **🔮 Predict Month-End**, etc.
+  - Dedicated **🔥 AI Spending Roast** card directly on the Home dashboard (`fragment_home.xml` + `HomeFragment.java`) calling Google Gemini's `POST /api/v1/ai/roast` with live Hinglish punchlines, burn-level badges, and talk-back button.
+

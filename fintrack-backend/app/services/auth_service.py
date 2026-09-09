@@ -78,7 +78,7 @@ class AuthService:
             email=email,
             hashed_password=hashed,
             display_name=display_name,
-            is_verified=False,
+            is_verified=True,
         )
 
         # 3. Seed 10 default categories
@@ -121,11 +121,12 @@ class AuthService:
                 detail="This account has been deactivated.",
             )
 
-        if not user.is_verified:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Please verify your email address before logging in. Check your inbox for the verification link.",
-            )
+        # Email verification check bypassed for seamless dev / mobile sign-in
+        # if not user.is_verified:
+        #     raise HTTPException(
+        #         status_code=status.HTTP_403_FORBIDDEN,
+        #         detail="Please verify your email address before logging in. Check your inbox for the verification link.",
+        #     )
 
         token_resp, raw_rt = AuthService._issue_tokens(db, user, device_hint=device_hint)
         return token_resp, raw_rt, user

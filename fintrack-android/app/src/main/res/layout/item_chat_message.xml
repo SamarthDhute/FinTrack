@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
+
+    <!-- User message layout (Right) -->
+    <LinearLayout
+        android:id="@+id/layoutUserMsg"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:maxWidth="280dp"
+        android:background="@drawable/bg_btn_primary"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/tvUserMsg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="User message here"
+            android:textColor="@color/white"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- AI message layout (Left) -->
+    <LinearLayout
+        android:id="@+id/layoutAiMsg"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        android:maxWidth="300dp"
+        android:background="@drawable/bg_chat_ai_bubble"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/tvAiMsg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="AI response here"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp" />
+    </LinearLayout>
+</LinearLayout>

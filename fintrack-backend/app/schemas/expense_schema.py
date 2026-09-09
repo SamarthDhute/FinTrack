@@ -1,7 +1,7 @@
 from datetime import date as dt_date, datetime as dt_datetime, timedelta
 from decimal import Decimal
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class ExpenseBase(BaseModel):
@@ -12,6 +12,16 @@ class ExpenseBase(BaseModel):
     amount: Decimal = Field(..., gt=0, decimal_places=2, description="Expense amount in INR (must be positive)")
     date: dt_date = Field(default_factory=dt_date.today, description="Expense transaction date (cannot be in the future)")
     notes: Optional[str] = Field(None, max_length=500, description="Optional notes or details")
+
+    @model_validator(mode="before")
+    @classmethod
+    def handle_aliases(cls, data):
+        if isinstance(data, dict):
+            if "title" not in data and "description" in data:
+                data["title"] = data["description"]
+            if "date" not in data and "expense_date" in data:
+                data["date"] = data["expense_date"]
+        return data
 
     @field_validator("date")
     @classmethod

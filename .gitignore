@@ -49,3 +49,12 @@ dist-ssr/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Android
+*.apk
+*.aab
+*.jks
+*.keystore
+local.properties
+.gradle/
+**/build/
