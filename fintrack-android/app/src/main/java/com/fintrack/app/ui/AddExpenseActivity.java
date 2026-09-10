@@ -26,7 +26,14 @@ import com.fintrack.app.api.ApiClient;
 import com.fintrack.app.models.*;
 import com.fintrack.app.utils.CurrencyFormatter;
 import com.google.android.material.button.MaterialButton;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Environment;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -70,7 +77,9 @@ public class AddExpenseActivity extends AppCompatActivity {
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
     private ActivityResultLauncher<String> galleryLauncher;
-    private ActivityResultLauncher<Void> cameraLauncher;
+    private ActivityResultLauncher<Uri> takePictureLauncher;
+    private ActivityResultLauncher<String> cameraPermissionLauncher;
+    private Uri currentPhotoUri;
     private final Handler autoCategorizeHandler = new Handler(Looper.getMainLooper());
     private Runnable autoCategorizeRunnable;
 
@@ -252,9 +261,17 @@ public class AddExpenseActivity extends AppCompatActivity {
             }
         });
 
-        cameraLauncher = registerForActivityResult(new ActivityResultContracts.TakePicturePreview(), bitmap -> {
-            if (bitmap != null) {
-                processReceiptBitmap(bitmap);
+        takePictureLauncher = registerForActivityResult(new ActivityResultContracts.TakePicture(), success -> {
+            if (success && currentPhotoUri != null) {
+                processReceiptImageUri(currentPhotoUri);
+            }
+        });
+
+        cameraPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+            if (isGranted) {
+                launchCamera();
+            } else {
+                Toast.makeText(this, "Camera permission is required to take receipt photos", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -264,7 +281,7 @@ public class AddExpenseActivity extends AppCompatActivity {
                     .setTitle("Scan Bill / Receipt with AI")
                     .setItems(options, (dialog, which) -> {
                         if (which == 0) {
-                            cameraLauncher.launch(null);
+                            checkCameraPermissionAndLaunch();
                         } else {
                             galleryLauncher.launch("image/*");
                         }
@@ -272,6 +289,40 @@ public class AddExpenseActivity extends AppCompatActivity {
                     .setNegativeButton("Cancel", null)
                     .show();
         });
+    }
+
+    private void checkCameraPermissionAndLaunch() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            launchCamera();
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+        }
+    }
+
+    private void launchCamera() {
+        try {
+            File photoFile = createImageFile();
+            if (photoFile != null) {
+                currentPhotoUri = FileProvider.getUriForFile(
+                        this,
+                        getApplicationContext().getPackageName() + ".fileprovider",
+                        photoFile
+                );
+                takePictureLauncher.launch(currentPhotoUri);
+            }
+        } catch (Exception e) {
+            Toast.makeText(this, "Could not launch camera: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private File createImageFile() throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+        String imageFileName = "RECEIPT_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        if (storageDir == null) {
+            storageDir = getCacheDir();
+        }
+        return File.createTempFile(imageFileName, ".jpg", storageDir);
     }
 
     private void processReceiptImageUri(Uri uri) {

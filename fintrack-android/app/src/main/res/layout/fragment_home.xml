@@ -428,6 +428,17 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/tvRoastToggleDetails"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="Why this roast? View explanation ▼"
+                        android:textColor="#C2410C"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+
+                    <TextView
                         android:id="@+id/tvRoastBody"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -435,7 +446,8 @@
                         android:text="Tap 'Roast Me' to let Google Gemini roast your spending ruthlessly based on your live transactions..."
                         android:textColor="#7C2D12"
                         android:textSize="13sp"
-                        android:lineSpacingExtra="3dp" />
+                        android:lineSpacingExtra="3dp"
+                        android:visibility="gone" />
 
                     <LinearLayout
                         android:layout_width="match_parent"

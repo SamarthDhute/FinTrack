@@ -33,7 +33,7 @@ public class HomeFragment extends Fragment implements WalletAdapter.OnWalletActi
     private TextView tvMonthSpentHome, tvViewAllWallets;
     private MaterialButton btnVibeAdvice, btnQuickExpense, btnQuickDeposit;
     private View cardHeroVibe;
-    private TextView tvRoastBurnBadge, tvRoastPunchline, tvRoastBody;
+    private TextView tvRoastBurnBadge, tvRoastPunchline, tvRoastToggleDetails, tvRoastBody;
     private MaterialButton btnRoastMe, btnRoastChat;
     private RecyclerView rvWalletsHome, rvExpensesHome;
     private SwipeRefreshLayout swipeRefreshHome;
@@ -64,6 +64,7 @@ public class HomeFragment extends Fragment implements WalletAdapter.OnWalletActi
 
         tvRoastBurnBadge = view.findViewById(R.id.tvRoastBurnBadge);
         tvRoastPunchline = view.findViewById(R.id.tvRoastPunchline);
+        tvRoastToggleDetails = view.findViewById(R.id.tvRoastToggleDetails);
         tvRoastBody = view.findViewById(R.id.tvRoastBody);
         btnRoastMe = view.findViewById(R.id.btnRoastMe);
         btnRoastChat = view.findViewById(R.id.btnRoastChat);
@@ -130,6 +131,13 @@ public class HomeFragment extends Fragment implements WalletAdapter.OnWalletActi
                     new AIChatDialog(getContext()).show();
                 }
             });
+        }
+
+        if (tvRoastToggleDetails != null) {
+            tvRoastToggleDetails.setOnClickListener(v -> toggleRoastDetails());
+        }
+        if (tvRoastPunchline != null) {
+            tvRoastPunchline.setOnClickListener(v -> toggleRoastDetails());
         }
     }
 
@@ -257,6 +265,12 @@ public class HomeFragment extends Fragment implements WalletAdapter.OnWalletActi
                     }
                     if (roast.getRoast() != null && tvRoastBody != null) {
                         tvRoastBody.setText(roast.getRoast());
+                        // Initially keep explanation collapsed (optional)
+                        tvRoastBody.setVisibility(View.GONE);
+                        if (tvRoastToggleDetails != null) {
+                            tvRoastToggleDetails.setVisibility(View.VISIBLE);
+                            tvRoastToggleDetails.setText("Why this roast? View explanation ▼");
+                        }
                     }
                 }
             }
@@ -269,6 +283,17 @@ public class HomeFragment extends Fragment implements WalletAdapter.OnWalletActi
                 }
             }
         });
+    }
+
+    private void toggleRoastDetails() {
+        if (tvRoastBody == null || tvRoastToggleDetails == null) return;
+        if (tvRoastBody.getVisibility() == View.VISIBLE) {
+            tvRoastBody.setVisibility(View.GONE);
+            tvRoastToggleDetails.setText("Why this roast? View explanation ▼");
+        } else {
+            tvRoastBody.setVisibility(View.VISIBLE);
+            tvRoastToggleDetails.setText("Hide explanation ▲");
+        }
     }
 
     @Override

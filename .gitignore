@@ -45,6 +45,9 @@ dist-ssr/
 # IDE & OS
 .vscode/
 .idea/
+.claude/
+.codex/
+.cursor/
 *.swp
 *.swo
 .DS_Store
